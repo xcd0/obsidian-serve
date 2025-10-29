@@ -150,33 +150,46 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 				'設定タブから手動でセットアップを実行してください。', 8000);
 			// セットアップエラーでも継続（既存のワークフローがある可能性）。
 		}
-			// 利用可能なobsidian-gitコマンドをリストアップ（デバッグ用）。
-			const allCommands = (this.app as any).commands.listCommands();
-			const obsidianGitCommands = allCommands.filter((cmd: any) => cmd.id.startsWith('obsidian-git:'));
-			console.log('利用可能なobsidian-gitコマンド:', obsidianGitCommands.map((cmd: any) => ({ id: cmd.id, name: cmd.name })));
+		// 利用可能なobsidian-gitコマンドをリストアップ（デバッグ用）。
+		const allCommands = (this.app as any).commands.listCommands();
+		const obsidianGitCommands = allCommands.filter((cmd: any) => cmd.id.startsWith('obsidian-git:'));
+		console.log('===== 利用可能なobsidian-gitコマンド =====');
+		obsidianGitCommands.forEach((cmd: any) => {
+			console.log(`- ${cmd.id}: ${cmd.name}`);
+		});
+		console.log('==========================================');
 
-			new Notice('変更をコミット・プッシュしています...');
+		new Notice('変更をコミット・プッシュしています...');
 
-			// obsidian-gitのcommit & pushコマンドを実行。
-			console.log('実行するコマンド: obsidian-git:commit-push-specified-message');
-			const success = await (this.app as any).commands.executeCommandById('obsidian-git:commit-push-specified-message');
-			console.log('コマンド実行結果:', success);
+		// obsidian-gitのcommit & pushコマンドを実行。
+		// より確実なコマンドIDを試す。
+		const commandsToTry = [
+			'obsidian-git:commit-push',
+			'obsidian-git:commit-push-specified-message',
+			'obsidian-git:backup'
+		];
 
-			if (success === false) {
-				console.log('第1コマンドが失敗、フォールバックを試行: obsidian-git:commit-push');
-				// コマンドが見つからない場合は別のコマンドIDを試す。
-				const fallbackSuccess = await (this.app as any).commands.executeCommandById('obsidian-git:commit-push');
-				console.log('フォールバックコマンド実行結果:', fallbackSuccess);
+		let executed = false;
+		for (const commandId of commandsToTry) {
+			console.log(`実行を試行: ${commandId}`);
+			const result = await (this.app as any).commands.executeCommandById(commandId);
+			console.log(`実行結果: ${result}`);
 
-				if (fallbackSuccess === false) {
-					new Notice('obsidian-gitのコマンド実行に失敗しました。\n\n' +
-						'コマンドパレットから「Obsidian Git: Commit and push」を手動で実行してください。', 10000);
-					return;
-				}
+			if (result !== false) {
+				console.log(`コマンド ${commandId} が正常に実行されました`);
+				executed = true;
+				break;
 			}
+		}
 
-			// 成功時のメッセージはobsidian-gitが表示するため、ここでは表示しない。
-			console.log('obsidian-gitのcommit & pushコマンドを実行しました');
+		if (!executed) {
+			new Notice('obsidian-gitのコマンド実行に失敗しました。\n\n' +
+				'コマンドパレットから「Obsidian Git: Commit and push」を手動で実行してください。', 10000);
+			return;
+		}
+
+		// 成功時のメッセージはobsidian-gitが表示するため、ここでは表示しない。
+		console.log('obsidian-gitのcommit & pushコマンドを実行しました');
 
 		} catch (error) {
 			console.error('公開エラー:', error);

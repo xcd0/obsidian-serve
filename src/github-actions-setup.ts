@@ -129,8 +129,7 @@ export class GitHubActionsSetup {
 			.replace(/{{ENABLE_POPOVERS}}/g, String(this.settings.quartz.enablePopovers))
 			.replace(/{{FONT_HEADER}}/g, this.escapeYaml(this.settings.quartz.theme.typography.header))
 			.replace(/{{FONT_BODY}}/g, this.escapeYaml(this.settings.quartz.theme.typography.body))
-			.replace(/{{FONT_CODE}}/g, this.escapeYaml(this.settings.quartz.theme.typography.code))
-			.replace(/{{QUARTZ_CONFIG}}/g, this.generateQuartzConfig());
+			.replace(/{{FONT_CODE}}/g, this.escapeYaml(this.settings.quartz.theme.typography.code));
 
 		const filePath = path.join(this.vaultBasePath, '.github', 'workflows', 'build-and-publish.yml');
 		const fs = require('fs');
@@ -148,23 +147,6 @@ export class GitHubActionsSetup {
 			return '"' + str.replace(/"/g, '\\"') + '"';
 		}
 		return str;
-	}
-
-	/**
-	 * Quartz設定オブジェクトをJSON文字列として生成（1行）。
-	 */
-	private generateQuartzConfig(): string {
-		const config = {
-			siteTitle: this.settings.customization.siteTitle,
-			locale: this.settings.quartz.locale,
-			enableSPA: this.settings.quartz.enableSPA,
-			enablePopovers: this.settings.quartz.enablePopovers,
-			baseUrl: `${this.settings.githubUsername}.github.io/${this.settings.publishRepo}`,
-			typography: this.settings.quartz.theme.typography,
-			colors: this.settings.quartz.theme.colors,
-		};
-		// 1行のJSON文字列として生成（YAMLシンタックスエラーを防ぐため）。
-		return JSON.stringify(config).replace(/\$/g, '\\$').replace(/'/g, "\\'");
 	}
 
 
@@ -210,7 +192,14 @@ jobs:
       - name: Setup Quartz in publish repository
         working-directory: publish-repo
         env:
-          QUARTZ_CONFIG: '{{QUARTZ_CONFIG}}'
+          SITE_TITLE: '{{SITE_TITLE}}'
+          LOCALE: '{{LOCALE}}'
+          ENABLE_SPA: '{{ENABLE_SPA}}'
+          ENABLE_POPOVERS: '{{ENABLE_POPOVERS}}'
+          BASE_URL: '{{GITHUB_USERNAME}}.github.io/{{PUBLISH_REPO}}'
+          FONT_HEADER: '{{FONT_HEADER}}'
+          FONT_BODY: '{{FONT_BODY}}'
+          FONT_CODE: '{{FONT_CODE}}'
         run: |
           # Quartzがセットアップ済みかチェック。
           if [ ! -f "package.json" ] || ! grep -q "quartz" package.json; then
@@ -245,30 +234,53 @@ EOF
             # quartz.config.tsを生成。
             npx quartz create --strategy=empty
 
-            # 設定ファイルを上書き。
-            cat > quartz.config.ts << 'EOFCONFIG'
+            # 設定ファイルを上書き（環境変数から値を取得）。
+            cat > quartz.config.ts << EOFCONFIG
 import { QuartzConfig } from "./quartz/cfg"
 import * as Plugin from "./quartz/plugins"
 
-const config = \$QUARTZ_CONFIG
-
 const quartzConfig: QuartzConfig = {
   configuration: {
-    pageTitle: config.siteTitle,
-    enableSPA: config.enableSPA,
-    enablePopovers: config.enablePopovers,
+    pageTitle: "\${SITE_TITLE}",
+    enableSPA: \${ENABLE_SPA},
+    enablePopovers: \${ENABLE_POPOVERS},
     analytics: {
       provider: "plausible",
     },
-    locale: config.locale,
-    baseUrl: config.baseUrl,
+    locale: "\${LOCALE}",
+    baseUrl: "\${BASE_URL}",
     ignorePatterns: ["private", "templates", ".obsidian"],
     defaultDateType: "created",
     theme: {
       fontOrigin: "googleFonts",
       cdnCaching: true,
-      typography: config.typography,
-      colors: config.colors,
+      typography: {
+        header: "\${FONT_HEADER}",
+        body: "\${FONT_BODY}",
+        code: "\${FONT_CODE}"
+      },
+      colors: {
+        lightMode: {
+          light: "#faf8f8",
+          lightgray: "#e5e5e5",
+          gray: "#b8b8b8",
+          darkgray: "#4e4e4e",
+          dark: "#2b2b2b",
+          secondary: "#284b63",
+          tertiary: "#84a59d",
+          highlight: "rgba(143, 159, 169, 0.15)"
+        },
+        darkMode: {
+          light: "#161618",
+          lightgray: "#393639",
+          gray: "#646464",
+          darkgray: "#d4d4d4",
+          dark: "#ebebec",
+          secondary: "#7b97aa",
+          tertiary: "#84a59d",
+          highlight: "rgba(143, 159, 169, 0.15)"
+        }
+      }
     },
   },
   plugins: {
