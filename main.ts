@@ -75,16 +75,36 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 	 * 設定を読み込み。
 	 */
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		try {
+			const loadedData = await this.loadData();
+			this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+			console.log('設定を読み込みました:', this.getSettingsPath());
+		} catch (error) {
+			console.error('設定の読み込みに失敗しました:', error);
+			this.settings = Object.assign({}, DEFAULT_SETTINGS);
+		}
 	}
 
 	/**
 	 * 設定を保存。
 	 */
 	async saveSettings() {
-		await this.saveData(this.settings);
-		//! 設定が変更されたらPublishManagerを再初期化。
-		this.initializePublishManager();
+		try {
+			await this.saveData(this.settings);
+			console.log('設定を保存しました:', this.getSettingsPath());
+			//! 設定が変更されたらPublishManagerを再初期化。
+			this.initializePublishManager();
+		} catch (error) {
+			console.error('設定の保存に失敗しました:', error);
+			new Notice('設定の保存に失敗しました');
+		}
+	}
+
+	/**
+	 * 設定ファイルのパスを取得。
+	 */
+	private getSettingsPath(): string {
+		return `${this.manifest.dir}/data.json`;
 	}
 
 	/**

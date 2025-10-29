@@ -1,6 +1,6 @@
-import { App, Modal, PluginSettingTab, Setting } from 'obsidian';
+import { App, Modal, Notice, PluginSettingTab, Setting } from 'obsidian';
 import type GitHubPagesPublishPlugin from '../main';
-import type { PluginSettings } from './types';
+import { DEFAULT_SETTINGS, type PluginSettings } from './types';
 
 /**
  * 初期設定ガイドのダイアログ。
@@ -344,8 +344,7 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 			.addButton(button => button
 				.setButtonText('初期化')
 				.onClick(async () => {
-					// TODO: リポジトリ初期化処理を実装。
-					console.log('リポジトリ初期化');
+					await this.plugin.initializeRepository();
 				}));
 
 		new Setting(containerEl)
@@ -354,8 +353,101 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 			.addButton(button => button
 				.setButtonText('公開')
 				.onClick(async () => {
-					// TODO: 手動公開処理を実装。
-					console.log('手動公開');
+					await this.plugin.publishToGitHubPages();
+				}));
+
+		//! 設定管理セクション。
+		containerEl.createEl('h2', { text: '設定管理' });
+
+		// 設定保存場所の表示。
+		const settingsPath = `${this.plugin.manifest.dir}/data.json`;
+		new Setting(containerEl)
+			.setName('設定ファイルの保存場所')
+			.setDesc(`設定は自動的にJSONファイルとして保存されます: ${settingsPath}`)
+			.setClass('setting-item-description');
+
+		// 設定エクスポート。
+		new Setting(containerEl)
+			.setName('設定をエクスポート')
+			.setDesc('現在の設定をJSONファイルとしてダウンロード')
+			.addButton(button => button
+				.setButtonText('エクスポート')
+				.onClick(async () => {
+					try {
+						const json = JSON.stringify(this.plugin.settings, null, 2);
+						const blob = new Blob([json], { type: 'application/json' });
+						const url = URL.createObjectURL(blob);
+						const a = document.createElement('a');
+						a.href = url;
+						a.download = 'obsidian-github-pages-settings.json';
+						a.click();
+						URL.revokeObjectURL(url);
+						new Notice('設定をエクスポートしました');
+					} catch (error) {
+						console.error('エクスポートエラー:', error);
+						new Notice('設定のエクスポートに失敗しました');
+					}
+				}));
+
+		// 設定インポート。
+		new Setting(containerEl)
+			.setName('設定をインポート')
+			.setDesc('JSONファイルから設定を読み込み')
+			.addButton(button => button
+				.setButtonText('インポート')
+				.onClick(async () => {
+					const input = document.createElement('input');
+					input.type = 'file';
+					input.accept = '.json';
+					input.onchange = async (e) => {
+						try {
+							const file = (e.target as HTMLInputElement).files?.[0];
+							if (!file) return;
+
+							const text = await file.text();
+							const settings = JSON.parse(text);
+
+							// 設定を適用。
+							Object.assign(this.plugin.settings, settings);
+							await this.plugin.saveSettings();
+
+							// 設定画面を再描画。
+							this.display();
+
+							new Notice('設定をインポートしました');
+						} catch (error) {
+							console.error('インポートエラー:', error);
+							new Notice('設定のインポートに失敗しました');
+						}
+					};
+					input.click();
+				}));
+
+		// 設定リセット。
+		new Setting(containerEl)
+			.setName('設定をリセット')
+			.setDesc('すべての設定をデフォルト値に戻します')
+			.addButton(button => button
+				.setButtonText('リセット')
+				.setWarning()
+				.onClick(async () => {
+					// 確認ダイアログ。
+					const confirmed = confirm('すべての設定をデフォルト値に戻します。よろしいですか？');
+					if (!confirmed) return;
+
+					try {
+						// デフォルト設定に戻す。
+						Object.assign(this.plugin.settings, DEFAULT_SETTINGS);
+						await this.plugin.saveSettings();
+
+						// 設定画面を再描画。
+						this.display();
+
+						new Notice('設定をリセットしました');
+					} catch (error) {
+						console.error('リセットエラー:', error);
+						new Notice('設定のリセットに失敗しました');
+					}
 				}));
 	}
 }
