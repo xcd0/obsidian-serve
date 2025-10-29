@@ -196,9 +196,25 @@ jobs:
           if [ ! -f "package.json" ] || ! grep -q "quartz" package.json; then
             echo "Quartz is not setup. Setting up now..."
 
-            # Quartzの初期化（デフォルト設定を使用）。
-            npm install -g @jackyzha0/quartz
-            npx quartz create --strategy=empty
+            # Quartzリポジトリをクローン。
+            git clone https://github.com/jackyzha0/quartz.git quartz-temp
+
+            # 必要なファイルをコピー。
+            cp -r quartz-temp/quartz .
+            cp quartz-temp/package.json .
+            cp quartz-temp/package-lock.json .
+            cp quartz-temp/tsconfig.json .
+            cp quartz-temp/quartz.config.ts .
+            cp quartz-temp/quartz.layout.ts .
+
+            # contentディレクトリを作成。
+            mkdir -p content
+
+            # クローンしたディレクトリを削除。
+            rm -rf quartz-temp
+
+            # 依存関係をインストール。
+            npm install
 
             echo "Quartz setup completed!"
             git add .
