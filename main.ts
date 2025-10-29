@@ -122,13 +122,14 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 		}
 
 		try {
-			const pluginDir = this.manifest.dir || '';
-			if (!pluginDir) {
-				new Notice('プラグインディレクトリが取得できません');
+			//! Vaultのベースパスを取得。
+			const vaultBasePath = (this.app.vault.adapter as any).basePath;
+			if (!vaultBasePath) {
+				new Notice('Vaultパスが取得できません');
 				return;
 			}
 
-			const manager = new LocalPublishManager(this.app, this.settings, pluginDir);
+			const manager = new LocalPublishManager(this.app, this.settings, vaultBasePath);
 			await manager.publish();
 		} catch (error) {
 			console.error('公開エラー:', error);

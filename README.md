@@ -71,29 +71,47 @@ Public Repository
    - 公開用リポジトリ名を入力（例: "my-published-notes"）
    - 公開対象ディレクトリを指定（例: "Public/"）
 
-4. **GitHub Actions をセットアップ**
+4. **（推奨）Vaultの`.gitignore`に`.obsidian-publish-tmp/`を追加**
+   ```bash
+   echo ".obsidian-publish-tmp/" >> .gitignore
+   ```
+   ※「今すぐ公開」機能を使用する場合に必要
+
+5. **GitHub Actions をセットアップ**
    - コマンドパレット (Ctrl+P) → 「GitHub Actions をセットアップ」を実行
    - Vaultリポジトリに `.github/workflows/` が自動生成されます
 
-5. **Vaultを commit & push**
+6. **Vaultを commit & push**
    ```bash
    git add .
    git commit -m "Setup GitHub Actions for publishing"
    git push
    ```
 
-6. **完了！**
+7. **完了！**
    - 公開対象ディレクトリを編集してpushすると、自動的にGitHub Pagesに公開されます
 
 ## 使い方
 
-### 基本的な使い方
+### 基本的な使い方（GitHub Actions自動公開）
 
 1. Obsidianでノートを編集
 2. Vaultをgit commit & push
 3. GitHub Actionsが自動的にMarkdown→HTML変換
 4. 公開用リポジトリに自動push
 5. GitHub Pagesが自動デプロイ（数分以内）
+
+### 今すぐ公開ボタンの使い方
+
+Vaultのcommit/pushを待たずに、すぐに公開したい場合:
+
+1. Obsidianでノートを編集
+2. 設定画面の「今すぐ公開」ボタンをクリック
+3. プラグインがローカルでMarkdown→HTML変換
+4. 公開用リポジトリに自動push
+5. GitHub Pagesが自動デプロイ（数分以内）
+
+注: この方式では、Vault自体をcommit/pushする必要がありません。
 
 ### 公開URLの確認
 

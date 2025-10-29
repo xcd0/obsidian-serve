@@ -5,23 +5,23 @@ import * as fs from 'fs';
 
 /**
  * ローカル公開マネージャー。
- * tmp/以下に公開用リポジトリをcloneして管理。
+ * Vault配下の.obsidian-publish-tmp/に公開用リポジトリをcloneして管理。
  */
 export class LocalPublishManager {
 	private app: App;
 	private settings: PluginSettings;
-	private pluginDir: string;
+	private vaultBasePath: string;
 	private tmpDir: string;
 	private publishRepoDir: string;
 
 	/**
 	 * コンストラクタ。
 	 */
-	constructor(app: App, settings: PluginSettings, pluginDir: string) {
+	constructor(app: App, settings: PluginSettings, vaultBasePath: string) {
 		this.app = app;
 		this.settings = settings;
-		this.pluginDir = pluginDir;
-		this.tmpDir = path.join(pluginDir, 'tmp');
+		this.vaultBasePath = vaultBasePath;
+		this.tmpDir = path.join(vaultBasePath, '.obsidian-publish-tmp');
 		this.publishRepoDir = path.join(this.tmpDir, settings.publishRepo);
 	}
 

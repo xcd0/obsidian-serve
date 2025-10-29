@@ -61,12 +61,15 @@ my-obsidian-vault/          # privateリポジトリ
 │           ├── main.js
 │           ├── manifest.json
 │           └── data.json    # 設定ファイル
+├── .obsidian-publish-tmp/  # ローカル公開用（.gitignore推奨）
+│   └── my-public-notes/    # 公開用リポジトリのclone
 ├── .github/                # プラグインが自動生成
 │   ├── workflows/
 │   │   └── publish-to-pages.yml  # GitHub Actionsワークフロー
 │   └── scripts/
 │       ├── convert.mjs     # Markdown→HTML変換スクリプト
 │       └── package.json    # 変換スクリプトの依存関係
+├── .gitignore              # .obsidian-publish-tmp/を追加推奨
 ├── Private/                # 非公開ノート
 │   ├── diary.md
 │   └── secrets.md
@@ -188,10 +191,15 @@ interface FileNode {
    - GitHubユーザー名
    - 公開用リポジトリ名 (例: "my-public-notes")
    - 公開対象ディレクトリ (例: "Public/")
-4. 「GitHub Actions をセットアップ」コマンドを実行
+4. （推奨）Vaultの`.gitignore`に`.obsidian-publish-tmp/`を追加:
+   ```bash
+   echo ".obsidian-publish-tmp/" >> .gitignore
+   ```
+   ※「今すぐ公開」機能を使用する場合に必要
+5. 「GitHub Actions をセットアップ」コマンドを実行
    - Vaultリポジトリに .github/workflows/ が自動生成される
    - .github/scripts/convert.mjs も自動生成される
-5. Vaultをcommit & push
+6. Vaultをcommit & push
    ```bash
    git add .
    git commit -m "Setup GitHub Actions"
@@ -199,6 +207,8 @@ interface FileNode {
    ```
 
 ### 日常運用フロー
+
+#### 方式1: GitHub Actions自動公開（推奨）
 
 ```
 [ユーザー操作]
@@ -216,6 +226,25 @@ interface FileNode {
 7. 変換結果を公開用リポジトリにpush (GITHUB_TOKEN使用)
 8. GitHub Pagesが自動デプロイ (数分以内)
 ```
+
+#### 方式2: 今すぐ公開ボタン（ローカル変換）
+
+```
+[ユーザー操作]
+1. Obsidianでノート編集
+2. 設定画面の「今すぐ公開」ボタンをクリック
+
+[プラグインがローカルで実行]
+3. Vault配下の.obsidian-publish-tmp/に公開用リポジトリをclone/pull
+4. Markdownファイルを収集して変換:
+   - note1.md → note1.html
+   - index.htmlを生成
+5. .obsidian-publish-tmp/<repo>/内でgit commit
+6. 公開用リポジトリにpush
+7. GitHub Pagesが自動デプロイ (数分以内)
+```
+
+注: 方式2はVaultのcommit/pushを必要としないため、Vault自体の変更を残さずに公開できます。
 
 ## 変換処理
 
