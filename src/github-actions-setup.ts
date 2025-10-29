@@ -247,7 +247,7 @@ jobs:
           fi
 
           # Quartzでビルド。
-          npm run build
+          npx quartz build
 
           echo "Quartz build completed!"
           ls -la public/
