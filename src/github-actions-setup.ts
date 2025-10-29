@@ -257,13 +257,21 @@ jobs:
         env:
           PUBLISH_TOKEN: \${{ secrets.PUBLISH_TOKEN }}
         run: |
+          # PUBLISH_TOKENの確認。
+          if [ -z "\${PUBLISH_TOKEN}" ]; then
+            echo "Error: PUBLISH_TOKEN is not set"
+            echo "Please set PUBLISH_TOKEN in repository secrets"
+            exit 1
+          fi
+
           git add .
 
           # 変更があればコミット。
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "docs: Update published site (\$(date -u +%Y-%m-%d\ %H:%M:%S))"
+            TIMESTAMP=\$(date -u '+%Y-%m-%d %H:%M:%S')
+            git commit -m "docs: Update published site (\${TIMESTAMP})"
             git push https://\${PUBLISH_TOKEN}@github.com/{{GITHUB_USERNAME}}/{{PUBLISH_REPO}}.git main
             echo "Changes pushed to publish repository"
           fi
