@@ -38,6 +38,14 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 			}
 		});
 
+		this.addCommand({
+			id: 'publish-now',
+			name: '今すぐ公開',
+			callback: () => {
+				this.publishNow();
+			}
+		});
+
 		//! 設定タブを追加。
 		this.addSettingTab(new GitHubPagesPublishSettingTab(this.app, this));
 
@@ -100,6 +108,50 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 		} catch (error) {
 			console.error('GitHub Actions セットアップエラー:', error);
 			new Notice(`セットアップエラー: ${error.message}`);
+		}
+	}
+
+	/**
+	 * 今すぐ公開（commit & push）。
+	 */
+	async publishNow() {
+		try {
+			new Notice('公開処理を開始します...');
+
+			const vaultPath = (this.app.vault.adapter as any).basePath;
+			const { exec } = require('child_process');
+			const { promisify } = require('util');
+			const execAsync = promisify(exec);
+
+			// Git statusで変更があるか確認。
+			const { stdout: statusOut } = await execAsync('git status --porcelain', { cwd: vaultPath });
+
+			if (!statusOut.trim()) {
+				new Notice('変更がありません');
+				return;
+			}
+
+			new Notice('変更をステージングしています...');
+
+			// git add -A
+			await execAsync('git add -A', { cwd: vaultPath });
+
+			new Notice('コミットしています...');
+
+			// git commit
+			const commitMessage = `docs: Obsidianから公開 (${new Date().toISOString()})`;
+			await execAsync(`git commit -m "${commitMessage}"`, { cwd: vaultPath });
+
+			new Notice('リモートにpushしています...');
+
+			// git push
+			await execAsync('git push', { cwd: vaultPath });
+
+			new Notice('公開が完了しました! GitHub Actionsが自動実行されます。');
+
+		} catch (error) {
+			console.error('公開エラー:', error);
+			new Notice(`公開エラー: ${error.message}`);
 		}
 	}
 

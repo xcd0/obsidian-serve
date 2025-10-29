@@ -291,6 +291,16 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 					await this.plugin.setupGitHubActions();
 				}));
 
+		new Setting(containerEl)
+			.setName('今すぐ公開')
+			.setDesc('変更をコミットしてpushします（GitHub Actionsが自動実行されます）')
+			.addButton(button => button
+				.setButtonText('公開')
+				.setCta()
+				.onClick(async () => {
+					await this.plugin.publishNow();
+				}));
+
 		//! 設定管理セクション。
 		containerEl.createEl('h2', { text: '設定管理' });
 
