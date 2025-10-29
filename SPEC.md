@@ -9,7 +9,7 @@ Obsidian vault内の指定ディレクトリをGitHub Pagesで公開するプラ
 - **別リポジトリ方式**: vaultのprivateリポジトリとは別に、公開用リポジトリを使用
 - **GitHub Actions方式**: Personal Access Token不要、セキュア
 - **Git連動**: vaultのcommit & pushで自動ビルド・公開
-- **Obsidian Publish風**: グラフビュー、バックリンク、検索機能を搭載予定
+- **Quartz統合**: Quartz v4を使用した美しいサイト生成
 - **GitHub無料プラン対応**: publicリポジトリを使用
 
 ## アーキテクチャ
@@ -21,26 +21,33 @@ Obsidian vault内の指定ディレクトリをGitHub Pagesで公開するプラ
 │  Private Repository (Vault全体)     │
 │  ・既存のvault管理用                 │
 │  ・すべてのノート、設定、非公開ファイル │
-│  ・.github/workflows/ (プラグインが生成) │
+│  ・.github/workflows/sync-to-quartz.yml │
 │  ・ユーザーが通常通りgit commit/push  │
 └──────────────┬──────────────────────┘
                │ git push
                ↓
 ┌─────────────────────────────────────┐
-│  GitHub Actions                     │
+│  GitHub Actions (Vault側)           │
 │  1. 公開対象ディレクトリの変更を検知  │
-│  2. Node.js環境をセットアップ        │
-│  3. Markdown→HTML変換スクリプト実行  │
-│  4. 変換結果を公開用リポジトリにpush  │
+│  2. Markdownファイルを収集           │
+│  3. 公開用リポジトリのcontent/にpush │
 └──────────────┬──────────────────────┘
                │ GITHUB_TOKEN使用
                ↓
 ┌─────────────────────────────────────┐
-│  Public Repository (公開用)          │
-│  ・ブラウザから手動作成               │
-│  ・変換済みHTML + index.html         │
-│  ・公開したいコンテンツのみ           │
-│  └─ GitHub Pages有効化（手動）       │
+│  Public Repository (Quartz)          │
+│  ・ブラウザから手動作成 + Quartz初期化│
+│  ・content/ (Vaultから同期)          │
+│  ・quartz/ (Quartzのソースコード)    │
+│  ・.github/workflows/deploy.yml      │
+└──────────────┬──────────────────────┘
+               │ content/の変更を検知
+               ↓
+┌─────────────────────────────────────┐
+│  GitHub Actions (公開用リポジトリ側) │
+│  1. Quartz環境をセットアップ          │
+│  2. npx quartz build                │
+│  3. public/をGitHub Pagesにデプロイ  │
 └──────────────┬──────────────────────┘
                │ 自動デプロイ
                ↓
@@ -81,19 +88,33 @@ my-obsidian-vault/          # privateリポジトリ
         └── 2025-01-01.md
 ```
 
-#### Public Repository (手動作成)
+#### Public Repository (Quartz)
 ```
-my-public-notes/            # publicリポジトリ (GitHub Actionsが管理)
-├── index.html              # トップページ（自動生成）
-├── tech/                   # 変換済みHTML
-│   ├── typescript.html
-│   └── obsidian.html
-└── blog/
-    └── 2025-01-01.html
+my-public-notes/            # publicリポジトリ (Quartz統合)
+├── content/                # Vaultから同期されるMarkdown
+│   ├── tech/
+│   │   ├── typescript.md
+│   │   └── obsidian.md
+│   └── blog/
+│       └── 2025-01-01.md
+├── quartz/                 # Quartzのソースコード
+├── .github/
+│   └── workflows/
+│       └── deploy.yml      # Quartzビルド・デプロイワークフロー
+├── quartz.config.ts        # Quartz設定ファイル
+├── quartz.layout.ts        # レイアウト設定
+├── package.json
+└── public/                 # Quartzでビルドされた静的サイト（自動生成）
+    ├── index.html
+    ├── tech/
+    │   ├── typescript/
+    │   │   └── index.html
+    │   └── obsidian/
+    │       └── index.html
+    └── assets/
 ```
 
-注: GitHub Actions方式では、assets/やdata/などの静的ファイルは今後のフェーズで実装予定。
-現在はシンプルなHTMLファイルのみを生成。
+注: public/ディレクトリはQuartzが自動生成するため、Gitリポジトリには含めません。
 
 ## データ構造
 
@@ -186,20 +207,28 @@ interface FileNode {
 1. プラグインインストール
 2. ブラウザからGitHubで公開用リポジトリを作成:
    - Public リポジトリを作成 (例: "my-public-notes")
-   - GitHub Pagesを有効化 (Settings → Pages)
-3. 設定画面で入力:
+3. 公開用リポジトリにQuartzをセットアップ:
+   ```bash
+   git clone https://github.com/<username>/my-public-notes.git
+   cd my-public-notes
+   npx quartz create  # Empty Quartz を選択
+   # .github/workflows/deploy.yml を作成 (QUARTZ_SETUP.md参照)
+   git add . && git commit -m "feat: Setup Quartz" && git push
+   ```
+4. GitHub Pagesを有効化:
+   - リポジトリ設定 → Pages → Source: GitHub Actions
+5. 設定画面で入力:
    - GitHubユーザー名
    - 公開用リポジトリ名 (例: "my-public-notes")
    - 公開対象ディレクトリ (例: "Public/")
-4. （推奨）Vaultの`.gitignore`に`.obsidian-publish-tmp/`を追加:
+6. （推奨）Vaultの`.gitignore`に`.obsidian-publish-tmp/`を追加:
    ```bash
    echo ".obsidian-publish-tmp/" >> .gitignore
    ```
    ※「今すぐ公開」機能を使用する場合に必要
-5. 「GitHub Actions をセットアップ」コマンドを実行
-   - Vaultリポジトリに .github/workflows/ が自動生成される
-   - .github/scripts/convert.mjs も自動生成される
-6. Vaultをcommit & push
+7. 「GitHub Actions をセットアップ」コマンドを実行
+   - Vaultリポジトリに .github/workflows/sync-to-quartz.yml が自動生成される
+8. Vaultをcommit & push
    ```bash
    git add .
    git commit -m "Setup GitHub Actions"
@@ -216,15 +245,17 @@ interface FileNode {
 2. Vaultをgit commit
 3. git push origin main
 
-[GitHub Actionsが自動実行]
+[Vault側のGitHub Actions]
 4. 公開対象ディレクトリの変更を検知
-5. Node.js環境をセットアップ
-6. 変換スクリプト (convert.mjs) を実行:
-   - Markdownファイルを収集
-   - note1.md → note1.html
-   - index.htmlを生成
-7. 変換結果を公開用リポジトリにpush (GITHUB_TOKEN使用)
-8. GitHub Pagesが自動デプロイ (数分以内)
+5. Markdownファイルを収集
+6. 公開用リポジトリのcontent/ディレクトリにpush (GITHUB_TOKEN使用)
+
+[公開用リポジトリ側のGitHub Actions]
+7. content/の変更を検知
+8. Node.js v22環境をセットアップ
+9. npx quartz buildを実行
+10. public/ディレクトリをGitHub Pagesにデプロイ
+11. サイトが公開される (数分以内)
 ```
 
 #### 方式2: 今すぐ公開ボタン（ローカル変換）

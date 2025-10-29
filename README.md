@@ -9,30 +9,35 @@ Obsidian vault内の指定ディレクトリをGitHub Pagesで公開するプラ
 - ✅ **自動公開**: Vaultをcommit & pushするだけで自動デプロイ
 - ✅ **プライバシー保護**: vaultのprivateリポジトリとは別の公開用リポジトリを使用
 - ✅ **選択的公開**: 指定ディレクトリのみを公開対象に
-- ✅ **index.html自動生成**: 公開されたノート一覧ページを自動生成
+- ✅ **Quartz統合**: Quartz v4を使用した美しいサイト生成
 
 ## アーキテクチャ
 
 ```
 Private Vault Repository
   ↓ (commit & push)
-GitHub Actions
-  ↓ (Markdown→HTML変換)
-Public Repository
-  ↓ (GitHub Pages)
+GitHub Actions (Vault側)
+  ↓ (Markdownファイルを同期)
+Public Repository with Quartz
+  ↓ GitHub Actions (公開用リポジトリ側)
+  ↓ (Quartz build)
+GitHub Pages
+  ↓
 公開サイト
 ```
 
 ### リポジトリ構成
 
-- **Private Repository**: Vault全体を管理（既存のリポジトリ）
-- **Public Repository**: ブラウザから手動作成する公開用リポジトリ
+- **Private Repository (Vault)**: Vault全体を管理（既存のリポジトリ）
+- **Public Repository**: Quartz + content/ディレクトリ（Vaultから同期されるMarkdown）
 
-### GitHub Actions方式のメリット
+### Quartz方式のメリット
 
 1. Personal Access Tokenが不要（セキュリティ向上）
-2. 変換処理がGitHub上で実行される（ローカル負荷軽減）
-3. CI/CD的な透明性（GitHub ActionsのUIで実行状況確認可能）
+2. Quartzの豊富な機能を利用可能（グラフビュー、検索、タグなど）
+3. 美しいデザインとレスポンシブ対応
+4. 設定ファイルでカスタマイズ可能
+5. CI/CD的な透明性（GitHub ActionsのUIで実行状況確認可能）
 
 ## セットアップ
 
@@ -60,36 +65,47 @@ Public Repository
    - 例: `my-published-notes`
    - ⚠️ 必ずPublicリポジトリにしてください（無料プランでGitHub Pagesを使用するため）
 
-2. **GitHub Pagesを有効化**
-   - リポジトリ設定 → Pages
-   - Source: Deploy from a branch
-   - Branch: main / (root) → Save
+2. **公開用リポジトリにQuartzをセットアップ**
+   - 詳細は [QUARTZ_SETUP.md](./QUARTZ_SETUP.md) を参照
+   - 概要:
+     ```bash
+     git clone https://github.com/<username>/<repository-name>.git
+     cd <repository-name>
+     npx quartz create  # Empty Quartz を選択
+     # .github/workflows/deploy.yml を作成
+     git add . && git commit -m "feat: Setup Quartz" && git push
+     ```
 
-3. **プラグイン設定を入力**
+3. **GitHub Pagesを有効化**
+   - リポジトリ設定 → Pages
+   - Source: **GitHub Actions** を選択
+   - 保存
+
+4. **プラグイン設定を入力**
    - 設定 → Community plugins → GitHub Pages Publish
    - GitHubユーザー名を入力
    - 公開用リポジトリ名を入力（例: "my-published-notes"）
    - 公開対象ディレクトリを指定（例: "Public/"）
 
-4. **（推奨）Vaultの`.gitignore`に`.obsidian-publish-tmp/`を追加**
+5. **（推奨）Vaultの`.gitignore`に`.obsidian-publish-tmp/`を追加**
    ```bash
    echo ".obsidian-publish-tmp/" >> .gitignore
    ```
    ※「今すぐ公開」機能を使用する場合に必要
 
-5. **GitHub Actions をセットアップ**
+6. **GitHub Actions をセットアップ**
    - コマンドパレット (Ctrl+P) → 「GitHub Actions をセットアップ」を実行
-   - Vaultリポジトリに `.github/workflows/` が自動生成されます
+   - Vaultリポジトリに `.github/workflows/sync-to-quartz.yml` が自動生成されます
 
-6. **Vaultを commit & push**
+7. **Vaultを commit & push**
    ```bash
    git add .
    git commit -m "Setup GitHub Actions for publishing"
    git push
    ```
 
-7. **完了！**
-   - 公開対象ディレクトリを編集してpushすると、自動的にGitHub Pagesに公開されます
+8. **完了！**
+   - 公開対象ディレクトリを編集してpushすると、自動的にQuartz経由でGitHub Pagesに公開されます
 
 ## 使い方
 
@@ -97,8 +113,8 @@ Public Repository
 
 1. Obsidianでノートを編集
 2. Vaultをgit commit & push
-3. GitHub Actionsが自動的にMarkdown→HTML変換
-4. 公開用リポジトリに自動push
+3. Vault側のGitHub ActionsがMarkdownを公開用リポジトリのcontent/に同期
+4. 公開用リポジトリのGitHub ActionsがQuartzでビルド
 5. GitHub Pagesが自動デプロイ（数分以内）
 
 ### 今すぐ公開ボタンの使い方
