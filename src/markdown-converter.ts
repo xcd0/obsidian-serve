@@ -102,9 +102,9 @@ export class MarkdownConverter {
 			path = path.slice(0, -3);
 		}
 
-		// /notes/配下に配置。
+		// 絶対パスに変換。
 		if (!path.startsWith('/')) {
-			path = '/notes/' + path;
+			path = '/' + path;
 		}
 
 		return path + '.html';

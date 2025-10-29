@@ -232,7 +232,7 @@ export class PublishManager {
 			}
 
 			// HTMLパスを生成 (.mdを.htmlに変換)。
-			const htmlPath = 'notes/' + relativePath.replace(/\.md$/, '.html');
+			const htmlPath = relativePath.replace(/\.md$/, '.html');
 
 			// GitHubにアップロード。
 			await this.githubAPI.uploadFile(
