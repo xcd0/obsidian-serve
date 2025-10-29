@@ -2,6 +2,7 @@ import { Notice, Plugin } from 'obsidian';
 import { GitHubPagesPublishSettingTab } from './src/settings';
 import { DEFAULT_SETTINGS, type PluginSettings } from './src/types';
 import { GitHubActionsSetup } from './src/github-actions-setup';
+import { LocalPublishManager } from './src/local-publish-manager';
 
 /**
  * GitHub Pages Publishプラグインのメインクラス。
@@ -112,43 +113,23 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 	}
 
 	/**
-	 * 今すぐ公開（commit & push）。
+	 * 今すぐ公開（tmp/のリポジトリにpush）。
 	 */
 	async publishNow() {
+		//! 設定の検証。
+		if (!this.validateSettings()) {
+			return;
+		}
+
 		try {
-			new Notice('公開処理を開始します...');
-
-			const vaultPath = (this.app.vault.adapter as any).basePath;
-			const { exec } = require('child_process');
-			const { promisify } = require('util');
-			const execAsync = promisify(exec);
-
-			// Git statusで変更があるか確認。
-			const { stdout: statusOut } = await execAsync('git status --porcelain', { cwd: vaultPath });
-
-			if (!statusOut.trim()) {
-				new Notice('変更がありません');
+			const pluginDir = this.manifest.dir || '';
+			if (!pluginDir) {
+				new Notice('プラグインディレクトリが取得できません');
 				return;
 			}
 
-			new Notice('変更をステージングしています...');
-
-			// git add -A
-			await execAsync('git add -A', { cwd: vaultPath });
-
-			new Notice('コミットしています...');
-
-			// git commit
-			const commitMessage = `docs: Obsidianから公開 (${new Date().toISOString()})`;
-			await execAsync(`git commit -m "${commitMessage}"`, { cwd: vaultPath });
-
-			new Notice('リモートにpushしています...');
-
-			// git push
-			await execAsync('git push', { cwd: vaultPath });
-
-			new Notice('公開が完了しました! GitHub Actionsが自動実行されます。');
-
+			const manager = new LocalPublishManager(this.app, this.settings, pluginDir);
+			await manager.publish();
 		} catch (error) {
 			console.error('公開エラー:', error);
 			new Notice(`公開エラー: ${error.message}`);
