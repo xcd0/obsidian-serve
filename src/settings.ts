@@ -23,6 +23,27 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
+		//! 初期設定ガイドセクション。
+		containerEl.createEl('h2', { text: '📋 初期設定ガイド' });
+
+		const guideDiv = containerEl.createDiv({ cls: 'setting-item-description' });
+		guideDiv.createEl('p', { text: 'GitHub Pagesで公開するための専用リポジトリを作成します。以下の手順で設定してください:' });
+
+		const ol = guideDiv.createEl('ol');
+		ol.createEl('li', { text: 'GitHub Personal Access Tokenを作成 (Settings → Developer settings → Personal access tokens → Tokens (classic))' });
+		ol.createEl('li', { text: '必要な権限: repo (Full control of private repositories)' });
+		ol.createEl('li', { text: '下記の「GitHub設定」にTokenとユーザー名を入力' });
+		ol.createEl('li', { text: '「リポジトリ設定」で公開用リポジトリ名を指定 (例: my-published-notes)' });
+		ol.createEl('li', { text: '「公開設定」で公開対象ディレクトリを指定 (例: Public/)' });
+		ol.createEl('li', { text: 'コマンドパレットから「GitHub公開用リポジトリを初期化」を実行' });
+		ol.createEl('li', { text: 'リポジトリが作成され、GitHub Pagesが自動的に有効化されます' });
+
+		const noteDiv = guideDiv.createDiv({ cls: 'mod-warning' });
+		noteDiv.createEl('strong', { text: '注意: ' });
+		noteDiv.createSpan({ text: 'GitHub無料プランでは、公開用リポジトリをPublicにする必要があります。Privateリポジトリを使用する場合はGitHub Pro ($4/月) が必要です。' });
+
+		containerEl.createEl('br');
+
 		//! GitHub設定セクション。
 		containerEl.createEl('h2', { text: 'GitHub設定' });
 
