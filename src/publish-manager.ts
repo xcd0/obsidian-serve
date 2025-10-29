@@ -99,6 +99,35 @@ export class PublishManager {
 		try {
 			new Notice('公開を開始します...');
 
+			// リポジトリの存在確認。
+			const repoExists = await this.githubAPI.repositoryExists(
+				this.settings.publishRepo
+			);
+
+			if (!repoExists) {
+				// リポジトリが存在しない場合、自動作成するか確認。
+				if (this.settings.autoCreateRepo) {
+					new Notice('公開用リポジトリが存在しないため、自動作成します...');
+					await this.initializeRepository();
+					new Notice('リポジトリを作成しました。公開を続行します...');
+				} else {
+					new Notice('公開用リポジトリが存在しません。先に「リポジトリ初期化」を実行してください。');
+					return;
+				}
+			} else {
+				// リポジトリは存在するが、GitHub Pagesが有効化されているか確認。
+				const pagesUrl = await this.githubAPI.getGitHubPagesUrl(
+					this.settings.publishRepo
+				);
+				if (!pagesUrl) {
+					new Notice('GitHub Pagesが有効化されていないため、有効化します...');
+					await this.githubAPI.enableGitHubPages(
+						this.settings.publishRepo,
+						'main'
+					);
+				}
+			}
+
 			// 公開対象ファイルを収集。
 			const files = await this.collectPublishableFiles();
 
