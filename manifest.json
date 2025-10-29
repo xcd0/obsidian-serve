@@ -1,0 +1,10 @@
+{
+	"id": "github-pages-publish",
+	"name": "GitHub Pages Publish",
+	"version": "0.1.0",
+	"minAppVersion": "0.15.0",
+	"description": "Vault内の指定ディレクトリをGitHub Pagesで公開します。Obsidian Publish風のデザインで、グラフビュー、バックリンク、検索機能を提供します。",
+	"author": "xcd0",
+	"authorUrl": "https://github.com/xcd0",
+	"isDesktopOnly": false
+}

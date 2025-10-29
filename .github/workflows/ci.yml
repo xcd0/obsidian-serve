@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: リポジトリをチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js ${{ matrix.node-version }} をセットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: 依存関係をインストール
+      run: npm ci
+
+    - name: 型チェック
+      run: npx tsc -noEmit -skipLibCheck
+
+    - name: ビルド
+      run: npm run build
+
+    - name: ビルド成果物を確認
+      run: |
+        if [ ! -f main.js ]; then
+          echo "Error: main.js が生成されていません"
+          exit 1
+        fi
+        echo "ビルド成功: main.js ($(stat -c%s main.js) bytes)"
+
+    - name: ビルド成果物をアップロード
+      if: matrix.node-version == '20.x'
+      uses: actions/upload-artifact@v4
+      with:
+        name: plugin-build
+        path: |
+          main.js
+          manifest.json
+          styles.css
+        retention-days: 7
+
+  # テストジョブ（将来的に実装）。
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: リポジトリをチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js 20.x をセットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: 依存関係をインストール
+      run: npm ci
+
+    - name: テスト実行
+      run: |
+        echo "テストは未実装です"
+        # TODO: npm test を実装したら有効化。
+        # npm test

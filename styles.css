@@ -1,0 +1,5 @@
+/* GitHub Pages Publishプラグインのスタイル */
+
+.github-pages-publish-ribbon-class {
+	color: var(--interactive-accent);
+}
