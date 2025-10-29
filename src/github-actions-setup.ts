@@ -71,6 +71,7 @@ export class GitHubActionsSetup {
 				'Clone publish repository',
 				'Setup Quartz',
 				'Build Quartz',
+				'Move public contents to root',
 				'PUBLISH_TOKEN'
 			];
 
@@ -251,6 +252,27 @@ jobs:
 
           echo "Quartz build completed!"
           ls -la public/
+
+      - name: Move public contents to root
+        working-directory: publish-repo
+        run: |
+          if [ -d "public" ]; then
+            echo "Moving public/ contents to repository root..."
+
+            # public/ の中身をルートにコピー。
+            cp -r public/* .
+            cp -r public/.[!.]* . 2>/dev/null || true
+
+            # public/ ディレクトリを削除。
+            rm -rf public/
+
+            echo "Deployment prepared!"
+            echo "Files in repository root:"
+            ls -la
+          else
+            echo "Error: public/ directory not found"
+            exit 1
+          fi
 
       - name: Push built site to publish repository
         working-directory: publish-repo

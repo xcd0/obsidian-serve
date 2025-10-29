@@ -123,8 +123,8 @@ Obsidianで:
 
 #### 5. GitHub Actionsをセットアップ
 
-1. コマンドパレット (`Ctrl+P`) を開く
-2. 「GitHub Actions をセットアップ」を実行
+1. Obsidianの設定 → Community plugins → GitHub Pages Publish → **管理タブ**を開く
+2. 「**GitHub Actions をセットアップ**」ボタンをクリック
 3. Vaultリポジトリに `.github/workflows/build-and-publish.yml` が自動生成されます
 
 #### 6. Vaultをcommit & push
@@ -152,23 +152,47 @@ git push
 3. 公開用リポジトリに自動push
 4. GitHub Pagesが自動デプロイ（数分以内）
 
-公開URLは `https://<username>.github.io/<repository-name>/` です。
+**公開URL**:
+
+`https://<username>.github.io/<repository-name>/`
+
+例: `https://xcd0.github.io/public-memo/`
+
+**注意**: URLに `/public/` は含めません。Quartzでビルドされたサイトはリポジトリのルートに配置されます。
 
 ## 使い方
+
+### プラグインの機能
+
+このプラグインは以下の機能を提供します：
+
+1. **GitHub Actionsワークフローファイルの自動生成**
+   - `.github/workflows/build-and-publish.yml`を生成
+   - Quartz統合、ビルド、デプロイの全プロセスを定義
+
+2. **セットアップ状態の確認**
+   - 管理タブの「セットアップ確認」ボタンで、ワークフローファイルが正しく設定されているか確認
+   - 未設定の場合は自動生成
+
+3. **設定管理**
+   - GitHubユーザー名、リポジトリ名、公開ディレクトリなどの設定を保存
+
+**注意**: このプラグインはgit commit/push機能を持ちません。公開には[obsidian-git](https://github.com/Vinzent03/obsidian-git)の自動commit & push機能、または手動での`git push`が必要です。
 
 ### 日常的な使い方
 
 セットアップ完了後は、**ノートを編集するだけ**で自動的に公開されます:
 
 1. Obsidianで`Public/`ディレクトリ内のノートを編集
-2. obsidian-gitが自動的にcommit & push（例: 5分ごと）
+2. **obsidian-gitが自動的にcommit & push**（例: 5分ごと）、または手動で`git push`
 3. Vault側のGitHub Actionsが:
    - 公開用リポジトリをclone
+   - Quartzをセットアップ（初回のみ）
    - Quartzでビルド
    - 結果をpush
 4. GitHub Pagesが自動デプロイ（数分以内）
 
-**手動操作は一切不要です！**
+**obsidian-gitを設定していれば、手動操作は一切不要です！**
 
 ### obsidian-gitの設定例
 
@@ -183,8 +207,13 @@ obsidian-gitプラグインの推奨設定:
 
 ### 公開URLの確認
 
-- `https://<username>.github.io/<repository-name>/` にアクセス
-- 例: `https://xcd0.github.io/public-memo/`
+公開されたサイトは以下のURLでアクセスできます:
+
+`https://<username>.github.io/<repository-name>/`
+
+例: `https://xcd0.github.io/public-memo/`
+
+**重要**: URLに `/public/` や `/index.html` を含める必要はありません。ブラウザで上記のURLを開くだけでQuartzでビルドされた美しいサイトが表示されます。
 
 ### ディレクトリ構造例
 
@@ -234,21 +263,37 @@ npm run build   # 本番ビルド
 - Obsidian Plugin API
 - esbuild（ビルドツール）
 
-GitHub Actions変換スクリプト:
-- `markdown-it`: Markdown→HTML変換
+外部連携:
+- [obsidian-git](https://github.com/Vinzent03/obsidian-git): git操作（推奨）
+- [Quartz v4](https://github.com/jackyzha0/quartz): 静的サイト生成（GitHub Actions内で自動セットアップ）
 
 ## 設定項目
 
-| 項目 | 説明 | デフォルト |
-|------|------|------------|
-| GitHub Username | GitHubユーザー名 | - |
-| Repository Name | 公開用リポジトリ名 | - |
-| Publish Directory | 公開対象ディレクトリ | "Public/" |
-| Exclude Patterns | 除外パターン（カンマ区切り） | "draft/*,*.tmp,Private/*" |
-| Respect Frontmatter | published: falseを尊重 | true |
-| Graph View | グラフビュー表示 | true |
-| Backlinks | バックリンク表示 | true |
-| Search | 検索機能 | true |
+### 基本設定タブ
+
+| 項目 | 説明 | デフォルト | 必須 |
+|------|------|------------|------|
+| GitHub Username | GitHubユーザー名 | - | ✅ |
+| Repository Name | 公開用リポジトリ名 | - | ✅ |
+| Publish Directory | 公開対象ディレクトリ | "Public/" | ✅ |
+
+### 管理タブ
+
+- **GitHub Actions をセットアップ**: ワークフローファイルを生成
+- **セットアップ確認**: ワークフローファイルの存在と妥当性を確認
+
+### Quartzの設定
+
+プラグインはQuartzのデフォルト設定を使用します。カスタマイズが必要な場合は、公開用リポジトリの`quartz.config.ts`を直接編集してください。
+
+利用可能なQuartz機能:
+- グラフビュー
+- 全文検索
+- タグページ
+- バックリンク
+- 構文ハイライト
+- 数式表示（KaTeX）
+- Obsidian形式のWikiリンク
 
 ## GitHub Actionsワークフロー
 
@@ -256,17 +301,27 @@ GitHub Actions変換スクリプト:
 
 - **トリガー**: `Public/`ディレクトリへのpush
 - **実行内容**:
-  1. Node.js 22環境のセットアップ
-  2. 公開用リポジトリをclone（`PUBLISH_TOKEN`使用）
-  3. Quartzのセットアップ（初回のみ）
-  4. `Public/`のMarkdownファイルを`content/`にコピー
-  5. `npx quartz build`でサイトをビルド
-  6. `public/`ディレクトリを公開用リポジトリにpush
+  1. **Node.js 22環境のセットアップ**
+  2. **公開用リポジトリをclone**（`PUBLISH_TOKEN`使用）
+  3. **Quartzのセットアップ**（初回のみ）:
+     - GitHubからQuartzリポジトリをclone
+     - 必要なファイル（quartz/, package.json等）をコピー
+     - `npm install`で依存関係をインストール
+     - Quartzのデフォルト設定を使用
+  4. **Markdownファイルをコピー**: `Public/`のファイルを`content/`にコピー
+  5. **Quartzでビルド**: `npx quartz build`で静的サイトを生成（成果物は`public/`に出力）
+  6. **デプロイメント準備**: `public/`の中身をリポジトリのルートに移動
+  7. **公開用リポジトリにpush**: ビルド済みサイトをpush
 - **使用権限**: `PUBLISH_TOKEN`（Secretsに設定）
+
+**Quartzのカスタマイズ:**
+- プラグインはQuartzのデフォルト設定を使用します
+- カスタマイズが必要な場合は、公開用リポジトリの`quartz.config.ts`を直接編集してください
 
 **メリット:**
 - 公開用リポジトリは静的ファイルのみ（CI不要）
 - 1つのワークフローで全処理が完結
+- YAMLシンタックスエラーなし（シンプルな構造）
 - デバッグしやすい
 
 ## トラブルシューティング
@@ -282,15 +337,41 @@ GitHub Actions変換スクリプト:
 
 **よくあるエラー:**
 
-- `PUBLISH_TOKEN`が設定されていない → 手順3を確認
+- `Error: PUBLISH_TOKEN is not set` → 手順3を確認（SecretsにPUBLISH_TOKENを設定）
 - `Permission denied`エラー → `PUBLISH_TOKEN`のスコープに`repo`が含まれているか確認
+- `npm error code E404` → ワークフローファイルが古い可能性があります。プラグインを最新版に更新し、ワークフローファイルを再生成してください
+- `date: extra operand` → ワークフローファイルが古い可能性があります。プラグインを最新版に更新し、ワークフローファイルを再生成してください
 - Quartzのビルドエラー → GitHub Actionsのログで詳細を確認
 
 ### 公開用リポジトリが更新されない
 
 1. Vault側のGitHub Actionsが成功しているか確認
-2. 公開用リポジトリに`public/`ディレクトリが存在するか確認
+2. 公開用リポジトリのルートに `index.html`, `404.html`, `sitemap.xml` などのファイルが存在するか確認
+   - **注意**: `public/` ディレクトリは存在しないはずです（ワークフローが正しく動作している場合）
 3. 公開用リポジトリの Settings → Pages で、Source が「Deploy from a branch」、Branch が「main / (root)」になっているか確認
+
+### 公開サイトにアクセスできない / 404エラー
+
+**正しいURL**: `https://<username>.github.io/<repository-name>/`
+
+例: `https://xcd0.github.io/public-memo/`
+
+**間違ったURL**: `https://<username>.github.io/<repository-name>/public/index.html`
+
+Quartzでビルドされたサイトは、公開用リポジトリの**ルート**にデプロイされます。URLに `/public/` を含めないでください。
+
+**確認方法**:
+
+1. 公開用リポジトリをブラウザで開く
+2. リポジトリのルートに `index.html` が存在することを確認
+3. `https://<username>.github.io/<repository-name>/` にアクセス
+
+**それでも404が出る場合**:
+
+1. GitHub Pages設定を確認: Settings → Pages → Source が "main" / "(root)"
+2. GitHub Actionsログを確認: "Move public contents to root" ステップが成功しているか
+3. 公開用リポジトリに `public/` ディレクトリが残っていないか確認
+   - 残っている場合: ワークフローファイルが古い可能性があります。プラグイン設定の「管理」タブから「GitHub Actions をセットアップ」を再実行してください
 
 ### ファイルが公開されない
 
