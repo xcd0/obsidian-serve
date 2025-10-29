@@ -191,143 +191,18 @@ jobs:
 
       - name: Setup Quartz in publish repository
         working-directory: publish-repo
-        env:
-          SITE_TITLE: '{{SITE_TITLE}}'
-          LOCALE: '{{LOCALE}}'
-          ENABLE_SPA: '{{ENABLE_SPA}}'
-          ENABLE_POPOVERS: '{{ENABLE_POPOVERS}}'
-          BASE_URL: '{{GITHUB_USERNAME}}.github.io/{{PUBLISH_REPO}}'
-          FONT_HEADER: '{{FONT_HEADER}}'
-          FONT_BODY: '{{FONT_BODY}}'
-          FONT_CODE: '{{FONT_CODE}}'
         run: |
           # Quartzがセットアップ済みかチェック。
           if [ ! -f "package.json" ] || ! grep -q "quartz" package.json; then
             echo "Quartz is not setup. Setting up now..."
 
-            # package.jsonを作成。
-            cat > package.json << 'EOF'
-{
-  "name": "@jackyzha0/quartz",
-  "description": "Quartz - a fast, batteries-included static-site generator",
-  "version": "4.0.0",
-  "type": "module",
-  "author": "jackyzha0 <j.zhao2k19@gmail.com>",
-  "license": "MIT",
-  "homepage": "https://quartz.jzhao.xyz",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jackyzha0/quartz.git"
-  },
-  "scripts": {
-    "build": "npx quartz build"
-  },
-  "dependencies": {
-    "@jackyzha0/quartz": "^4.0.0"
-  }
-}
-EOF
-
-            # Quartzをインストール。
-            npm install
-
-            # quartz.config.tsを生成。
+            # Quartzの初期化（デフォルト設定を使用）。
+            npm install -g @jackyzha0/quartz
             npx quartz create --strategy=empty
 
-            # 設定ファイルを上書き（環境変数から値を取得）。
-            cat > quartz.config.ts << EOFCONFIG
-import { QuartzConfig } from "./quartz/cfg"
-import * as Plugin from "./quartz/plugins"
-
-const quartzConfig: QuartzConfig = {
-  configuration: {
-    pageTitle: "\${SITE_TITLE}",
-    enableSPA: \${ENABLE_SPA},
-    enablePopovers: \${ENABLE_POPOVERS},
-    analytics: {
-      provider: "plausible",
-    },
-    locale: "\${LOCALE}",
-    baseUrl: "\${BASE_URL}",
-    ignorePatterns: ["private", "templates", ".obsidian"],
-    defaultDateType: "created",
-    theme: {
-      fontOrigin: "googleFonts",
-      cdnCaching: true,
-      typography: {
-        header: "\${FONT_HEADER}",
-        body: "\${FONT_BODY}",
-        code: "\${FONT_CODE}"
-      },
-      colors: {
-        lightMode: {
-          light: "#faf8f8",
-          lightgray: "#e5e5e5",
-          gray: "#b8b8b8",
-          darkgray: "#4e4e4e",
-          dark: "#2b2b2b",
-          secondary: "#284b63",
-          tertiary: "#84a59d",
-          highlight: "rgba(143, 159, 169, 0.15)"
-        },
-        darkMode: {
-          light: "#161618",
-          lightgray: "#393639",
-          gray: "#646464",
-          darkgray: "#d4d4d4",
-          dark: "#ebebec",
-          secondary: "#7b97aa",
-          tertiary: "#84a59d",
-          highlight: "rgba(143, 159, 169, 0.15)"
-        }
-      }
-    },
-  },
-  plugins: {
-    transformers: [
-      Plugin.FrontMatter(),
-      Plugin.CreatedModifiedDate({
-        priority: ["frontmatter", "filesystem"],
-      }),
-      Plugin.SyntaxHighlighting({
-        theme: {
-          light: "github-light",
-          dark: "github-dark",
-        },
-        keepBackground: false,
-      }),
-      Plugin.ObsidianFlavoredMarkdown({ enableInHtmlEmbed: false }),
-      Plugin.GitHubFlavoredMarkdown(),
-      Plugin.TableOfContents(),
-      Plugin.CrawlLinks({ markdownLinkResolution: "shortest" }),
-      Plugin.Description(),
-      Plugin.Latex({ renderEngine: "katex" }),
-    ],
-    filters: [Plugin.RemoveDrafts()],
-    emitters: [
-      Plugin.AliasRedirects(),
-      Plugin.ComponentResources(),
-      Plugin.ContentPage(),
-      Plugin.FolderPage(),
-      Plugin.TagPage(),
-      Plugin.ContentIndex({
-        enableSiteMap: true,
-        enableRSS: true,
-      }),
-      Plugin.Assets(),
-      Plugin.Static(),
-      Plugin.NotFoundPage(),
-    ],
-  },
-}
-
-export default quartzConfig
-EOFCONFIG
-
+            echo "Quartz setup completed!"
             git add .
             git commit -m "feat: Auto-setup Quartz" || echo "No changes to commit"
-
-            echo "Quartz setup completed!"
           else
             echo "Quartz is already setup."
           fi

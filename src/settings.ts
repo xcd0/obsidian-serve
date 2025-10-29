@@ -500,19 +500,19 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('今すぐ公開')
-			.setDesc('GitHub Actionsのセットアップを確認後、obsidian-gitのcommit & pushを実行します。obsidian-gitで自動commit & push設定済みの場合は不要です。')
+			.setName('セットアップ確認')
+			.setDesc('GitHub Actionsのワークフローが正しくセットアップされているか確認します。未セットアップの場合は自動生成します。')
 			.addButton(button => button
-				.setButtonText('Commit & Push')
+				.setButtonText('確認')
 				.setCta()
 				.onClick(async () => {
 					await this.plugin.publishNow();
 				}));
 
-		// obsidian-git連携の説明。
+		// 公開手順の説明。
 		const infoDiv = containerEl.createDiv({ cls: 'setting-item-description' });
 		infoDiv.createEl('p', {
-			text: 'このボタンは obsidian-git プラグインのcommit & pushコマンドを実行します。obsidian-gitで自動commit & pushを設定している場合は、このボタンを使用する必要はありません。'
+			text: '公開するには、obsidian-gitで自動commit & pushを設定するか、手動で git push を実行してください。pushされると、Vault側のGitHub Actionsが自動的にQuartzでビルドし、公開用リポジトリにデプロイします。'
 		});
 
 		//! 設定管理セクション。

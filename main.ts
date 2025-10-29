@@ -113,7 +113,7 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 	}
 
 	/**
-	 * 今すぐ公開（obsidian-gitのcommit & pushを実行）。
+	 * 今すぐ公開（GitHub Actionsのセットアップを確認）。
 	 */
 	async publishNow() {
 		//! 設定の検証。
@@ -122,79 +122,17 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 		}
 
 		try {
-			// obsidian-gitプラグインがインストールされているか確認。
-			const obsidianGitPlugin = (this.app as any).plugins.getPlugin('obsidian-git');
-
-			if (!obsidianGitPlugin) {
-				new Notice('obsidian-gitプラグインがインストールされていません。\n\n' +
-					'このプラグインはobsidian-gitと連携して動作します。\n' +
-					'obsidian-gitをインストールしてから再試行してください。', 10000);
-				return;
-			}
-
-			// obsidian-gitが有効になっているか確認。
-			if (!obsidianGitPlugin._loaded) {
-				new Notice('obsidian-gitプラグインが有効になっていません。\n\n' +
-					'設定 → Community plugins でobsidian-gitを有効化してください。', 10000);
-				return;
-			}
-
-
-		// GitHub Actionsのセットアップを確認・実行。
-		try {
+			// GitHub Actionsのセットアップを確認・実行。
 			const setup = new GitHubActionsSetup(this.app, this.settings);
 			await setup.ensureSetup();
+
+			new Notice('GitHub Actionsのセットアップを確認しました。\n\n' +
+				'obsidian-gitの自動commit & pushまたは手動でgit pushを実行してください。', 8000);
+
 		} catch (error) {
-			console.error('GitHub Actions自動セットアップエラー:', error);
-			new Notice('GitHub Actionsのセットアップに失敗しました。\n\n' +
+			console.error('セットアップエラー:', error);
+			new Notice(`セットアップエラー: ${error.message}\n\n` +
 				'設定タブから手動でセットアップを実行してください。', 8000);
-			// セットアップエラーでも継続（既存のワークフローがある可能性）。
-		}
-		// 利用可能なobsidian-gitコマンドをリストアップ（デバッグ用）。
-		const allCommands = (this.app as any).commands.listCommands();
-		const obsidianGitCommands = allCommands.filter((cmd: any) => cmd.id.startsWith('obsidian-git:'));
-		console.log('===== 利用可能なobsidian-gitコマンド =====');
-		obsidianGitCommands.forEach((cmd: any) => {
-			console.log(`- ${cmd.id}: ${cmd.name}`);
-		});
-		console.log('==========================================');
-
-		new Notice('変更をコミット・プッシュしています...');
-
-		// obsidian-gitのcommit & pushコマンドを実行。
-		// より確実なコマンドIDを試す。
-		const commandsToTry = [
-			'obsidian-git:commit-push',
-			'obsidian-git:commit-push-specified-message',
-			'obsidian-git:backup'
-		];
-
-		let executed = false;
-		for (const commandId of commandsToTry) {
-			console.log(`実行を試行: ${commandId}`);
-			const result = await (this.app as any).commands.executeCommandById(commandId);
-			console.log(`実行結果: ${result}`);
-
-			if (result !== false) {
-				console.log(`コマンド ${commandId} が正常に実行されました`);
-				executed = true;
-				break;
-			}
-		}
-
-		if (!executed) {
-			new Notice('obsidian-gitのコマンド実行に失敗しました。\n\n' +
-				'コマンドパレットから「Obsidian Git: Commit and push」を手動で実行してください。', 10000);
-			return;
-		}
-
-		// 成功時のメッセージはobsidian-gitが表示するため、ここでは表示しない。
-		console.log('obsidian-gitのcommit & pushコマンドを実行しました');
-
-		} catch (error) {
-			console.error('公開エラー:', error);
-			new Notice(`公開エラー: ${error.message}\n\n` +
-				'コマンドパレットから「Obsidian Git: Commit and push」を手動で実行してください。', 10000);
 		}
 	}
 
