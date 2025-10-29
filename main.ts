@@ -1,18 +1,23 @@
 import { Notice, Plugin } from 'obsidian';
 import { GitHubPagesPublishSettingTab } from './src/settings';
 import { DEFAULT_SETTINGS, type PluginSettings } from './src/types';
+import { PublishManager } from './src/publish-manager';
 
 /**
  * GitHub Pages Publishプラグインのメインクラス。
  */
 export default class GitHubPagesPublishPlugin extends Plugin {
 	settings: PluginSettings;
+	publishManager: PublishManager | null = null;
 
 	/**
 	 * プラグインの読み込み時に実行。
 	 */
 	async onload() {
 		await this.loadSettings();
+
+		//! PublishManagerを初期化。
+		this.initializePublishManager();
 
 		//! リボンアイコンを追加。
 		const ribbonIconEl = this.addRibbonIcon(
@@ -45,6 +50,14 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 			}
 		});
 
+		this.addCommand({
+			id: 'test-github-auth',
+			name: 'GitHub認証をテスト',
+			callback: () => {
+				this.testAuthentication();
+			}
+		});
+
 		//! 設定タブを追加。
 		this.addSettingTab(new GitHubPagesPublishSettingTab(this.app, this));
 
@@ -70,6 +83,18 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 	 */
 	async saveSettings() {
 		await this.saveData(this.settings);
+		//! 設定が変更されたらPublishManagerを再初期化。
+		this.initializePublishManager();
+	}
+
+	/**
+	 * PublishManagerを初期化。
+	 */
+	private initializePublishManager() {
+		//! 必要な設定が揃っている場合のみ初期化。
+		if (this.settings.githubToken && this.settings.githubUsername) {
+			this.publishManager = new PublishManager(this.app, this.settings);
+		}
 	}
 
 	/**
@@ -81,16 +106,17 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 			return;
 		}
 
-		new Notice('GitHub Pagesへの公開を開始します...');
-
 		try {
-			//! TODO: 公開処理を実装。
-			// 1. 公開対象ファイルを収集。
-			// 2. Markdown→HTML変換。
-			// 3. グラフデータ等を生成。
-			// 4. 公開用リポジトリにpush。
+			if (!this.publishManager) {
+				this.initializePublishManager();
+			}
 
-			new Notice('GitHub Pagesへの公開が完了しました!');
+			if (!this.publishManager) {
+				new Notice('PublishManagerの初期化に失敗しました');
+				return;
+			}
+
+			await this.publishManager.publish();
 		} catch (error) {
 			console.error('公開エラー:', error);
 			new Notice(`公開エラー: ${error.message}`);
@@ -106,18 +132,51 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 			return;
 		}
 
-		new Notice('公開用リポジトリを初期化しています...');
-
 		try {
-			//! TODO: リポジトリ初期化処理を実装。
-			// 1. GitHub APIでリポジトリ作成。
-			// 2. GitHub Pagesを有効化。
-			// 3. Gitフックを設定。
+			if (!this.publishManager) {
+				this.initializePublishManager();
+			}
 
-			new Notice('リポジトリの初期化が完了しました!');
+			if (!this.publishManager) {
+				new Notice('PublishManagerの初期化に失敗しました');
+				return;
+			}
+
+			await this.publishManager.initializeRepository();
 		} catch (error) {
 			console.error('初期化エラー:', error);
 			new Notice(`初期化エラー: ${error.message}`);
+		}
+	}
+
+	/**
+	 * GitHub認証をテスト。
+	 */
+	async testAuthentication() {
+		if (!this.settings.githubToken || !this.settings.githubUsername) {
+			new Notice('GitHub TokenとUsernameを設定してください');
+			return;
+		}
+
+		try {
+			if (!this.publishManager) {
+				this.initializePublishManager();
+			}
+
+			if (!this.publishManager) {
+				new Notice('PublishManagerの初期化に失敗しました');
+				return;
+			}
+
+			const success = await this.publishManager.testAuthentication();
+			if (success) {
+				new Notice('GitHub認証に成功しました!');
+			} else {
+				new Notice('GitHub認証に失敗しました');
+			}
+		} catch (error) {
+			console.error('認証テストエラー:', error);
+			new Notice(`認証エラー: ${error.message}`);
 		}
 	}
 
