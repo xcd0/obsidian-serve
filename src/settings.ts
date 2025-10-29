@@ -1,6 +1,100 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, Modal, PluginSettingTab, Setting } from 'obsidian';
 import type GitHubPagesPublishPlugin from '../main';
 import type { PluginSettings } from './types';
+
+/**
+ * 初期設定ガイドのダイアログ。
+ */
+class SetupGuideModal extends Modal {
+	constructor(app: App) {
+		super(app);
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.empty();
+
+		contentEl.createEl('h2', { text: '📋 初期設定ガイド' });
+
+		contentEl.createEl('p', {
+			text: 'GitHub Pagesで公開するための専用リポジトリを作成します。以下の手順で設定してください:'
+		});
+
+		const ol = contentEl.createEl('ol');
+
+		const li1 = ol.createEl('li');
+		li1.createEl('strong', { text: 'GitHub Personal Access Tokenを作成' });
+		li1.createEl('br');
+		li1.createSpan({ text: 'GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)' });
+
+		const li2 = ol.createEl('li');
+		li2.createEl('strong', { text: '必要な権限を選択' });
+		li2.createEl('br');
+		li2.createSpan({ text: 'repo (Full control of private repositories) にチェック' });
+
+		const li3 = ol.createEl('li');
+		li3.createEl('strong', { text: 'GitHub設定を入力' });
+		li3.createEl('br');
+		li3.createSpan({ text: 'Personal Access TokenとGitHubユーザー名を設定画面に入力' });
+
+		const li4 = ol.createEl('li');
+		li4.createEl('strong', { text: 'リポジトリ設定' });
+		li4.createEl('br');
+		li4.createSpan({ text: '公開用リポジトリ名を指定 (例: my-published-notes)' });
+
+		const li5 = ol.createEl('li');
+		li5.createEl('strong', { text: '公開設定' });
+		li5.createEl('br');
+		li5.createSpan({ text: '公開対象ディレクトリを指定 (例: Public/)' });
+
+		const li6 = ol.createEl('li');
+		li6.createEl('strong', { text: 'リポジトリを初期化' });
+		li6.createEl('br');
+		li6.createSpan({ text: 'コマンドパレット (Ctrl+P) から「GitHub公開用リポジトリを初期化」を実行' });
+
+		const li7 = ol.createEl('li');
+		li7.createEl('strong', { text: '完了！' });
+		li7.createEl('br');
+		li7.createSpan({ text: 'リポジトリが作成され、GitHub Pagesが自動的に有効化されます' });
+
+		contentEl.createEl('br');
+
+		const noteDiv = contentEl.createDiv({ cls: 'mod-warning' });
+		noteDiv.createEl('strong', { text: '💡 注意事項' });
+		noteDiv.createEl('br');
+		noteDiv.createSpan({
+			text: 'GitHub無料プランでは、公開用リポジトリをPublicにする必要があります。Privateリポジトリを使用する場合はGitHub Pro ($4/月) が必要です。'
+		});
+
+		contentEl.createEl('br');
+
+		const linkDiv = contentEl.createDiv();
+		linkDiv.createEl('p', { text: '詳細は以下のリンクを参照してください:' });
+		const ul = linkDiv.createEl('ul');
+		const linkLi1 = ul.createEl('li');
+		linkLi1.createEl('a', {
+			text: 'GitHub Personal Access Tokenの作成方法',
+			href: 'https://docs.github.com/ja/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens'
+		});
+		const linkLi2 = ul.createEl('li');
+		linkLi2.createEl('a', {
+			text: 'GitHub Pagesについて',
+			href: 'https://docs.github.com/ja/pages/getting-started-with-github-pages'
+		});
+
+		// 閉じるボタン。
+		const buttonDiv = contentEl.createDiv({ cls: 'modal-button-container' });
+		const closeButton = buttonDiv.createEl('button', { text: '閉じる' });
+		closeButton.addEventListener('click', () => {
+			this.close();
+		});
+	}
+
+	onClose() {
+		const { contentEl } = this;
+		contentEl.empty();
+	}
+}
 
 /**
  * プラグイン設定タブ。
@@ -23,26 +117,16 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		//! 初期設定ガイドセクション。
-		containerEl.createEl('h2', { text: '📋 初期設定ガイド' });
-
-		const guideDiv = containerEl.createDiv({ cls: 'setting-item-description' });
-		guideDiv.createEl('p', { text: 'GitHub Pagesで公開するための専用リポジトリを作成します。以下の手順で設定してください:' });
-
-		const ol = guideDiv.createEl('ol');
-		ol.createEl('li', { text: 'GitHub Personal Access Tokenを作成 (Settings → Developer settings → Personal access tokens → Tokens (classic))' });
-		ol.createEl('li', { text: '必要な権限: repo (Full control of private repositories)' });
-		ol.createEl('li', { text: '下記の「GitHub設定」にTokenとユーザー名を入力' });
-		ol.createEl('li', { text: '「リポジトリ設定」で公開用リポジトリ名を指定 (例: my-published-notes)' });
-		ol.createEl('li', { text: '「公開設定」で公開対象ディレクトリを指定 (例: Public/)' });
-		ol.createEl('li', { text: 'コマンドパレットから「GitHub公開用リポジトリを初期化」を実行' });
-		ol.createEl('li', { text: 'リポジトリが作成され、GitHub Pagesが自動的に有効化されます' });
-
-		const noteDiv = guideDiv.createDiv({ cls: 'mod-warning' });
-		noteDiv.createEl('strong', { text: '注意: ' });
-		noteDiv.createSpan({ text: 'GitHub無料プランでは、公開用リポジトリをPublicにする必要があります。Privateリポジトリを使用する場合はGitHub Pro ($4/月) が必要です。' });
-
-		containerEl.createEl('br');
+		//! 初期設定ガイドボタン。
+		new Setting(containerEl)
+			.setName('📋 初期設定ガイド')
+			.setDesc('GitHub Pagesで公開するための手順を確認')
+			.addButton(button => button
+				.setButtonText('ガイドを表示')
+				.setCta()
+				.onClick(() => {
+					new SetupGuideModal(this.app).open();
+				}));
 
 		//! GitHub設定セクション。
 		containerEl.createEl('h2', { text: 'GitHub設定' });
