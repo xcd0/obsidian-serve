@@ -139,6 +139,17 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 				return;
 			}
 
+
+		// GitHub Actionsのセットアップを確認・実行。
+		try {
+			const setup = new GitHubActionsSetup(this.app, this.settings);
+			await setup.ensureSetup();
+		} catch (error) {
+			console.error('GitHub Actions自動セットアップエラー:', error);
+			new Notice('GitHub Actionsのセットアップに失敗しました。\n\n' +
+				'設定タブから手動でセットアップを実行してください。', 8000);
+			// セットアップエラーでも継続（既存のワークフローがある可能性）。
+		}
 			new Notice('変更をコミット・プッシュしています...');
 
 			// obsidian-gitのcommit & pushコマンドを実行。

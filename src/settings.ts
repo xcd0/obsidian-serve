@@ -491,7 +491,7 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('GitHub Actions をセットアップ')
-			.setDesc('Vaultリポジトリに .github/workflows/ を自動生成します')
+			.setDesc('Vaultリポジトリに .github/workflows/build-and-publish.yml を生成します。「今すぐ公開」実行時に自動チェック・セットアップされるため、通常は手動実行不要です。')
 			.addButton(button => button
 				.setButtonText('セットアップ')
 				.setCta()
@@ -501,7 +501,7 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('今すぐ公開')
-			.setDesc('obsidian-gitのcommit & pushコマンドを実行します（手動でプッシュしたい場合に使用）')
+			.setDesc('GitHub Actionsのセットアップを確認後、obsidian-gitのcommit & pushを実行します。obsidian-gitで自動commit & push設定済みの場合は不要です。')
 			.addButton(button => button
 				.setButtonText('Commit & Push')
 				.setCta()

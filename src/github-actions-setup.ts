@@ -23,9 +23,11 @@ export class GitHubActionsSetup {
 	/**
 	 * GitHub Actions をセットアップ。
 	 */
-	async setup(): Promise<void> {
+	async setup(silent: boolean = false): Promise<void> {
 		try {
-			new Notice('GitHub Actions をセットアップしています...');
+			if (!silent) {
+				new Notice('GitHub Actions をセットアップしています...');
+			}
 
 			// ディレクトリを作成。
 			await this.createDirectories();
@@ -33,12 +35,67 @@ export class GitHubActionsSetup {
 			// ワークフローファイルを生成。
 			await this.generateWorkflowFile();
 
-			new Notice('GitHub Actions のセットアップが完了しました!');
-			new Notice('次に公開用リポジトリにQuartzをセットアップしてください。');
+			if (!silent) {
+				new Notice('GitHub Actions のセットアップが完了しました!');
+			}
+			console.log('GitHub Actions のセットアップが完了しました');
 		} catch (error) {
 			console.error('GitHub Actions セットアップエラー:', error);
-			new Notice(`セットアップエラー: ${error.message}`);
+			if (!silent) {
+				new Notice(`セットアップエラー: ${error.message}`);
+			}
 			throw error;
+		}
+	}
+
+	/**
+	 * ワークフローが正しくセットアップされているかチェック。
+	 */
+	isSetupValid(): boolean {
+		try {
+			const fs = require('fs');
+			const workflowPath = path.join(this.vaultBasePath, '.github', 'workflows', 'build-and-publish.yml');
+
+			// ファイルが存在しない場合。
+			if (!fs.existsSync(workflowPath)) {
+				console.log('ワークフローファイルが存在しません:', workflowPath);
+				return false;
+			}
+
+			// ファイル内容を読み込んで基本的な妥当性をチェック。
+			const content = fs.readFileSync(workflowPath, 'utf-8');
+
+			// 必須キーワードのチェック。
+			const requiredKeywords = [
+				'Build and Publish to GitHub Pages',
+				'Clone publish repository',
+				'Setup Quartz',
+				'Build Quartz',
+				'PUBLISH_TOKEN'
+			];
+
+			for (const keyword of requiredKeywords) {
+				if (!content.includes(keyword)) {
+					console.log(`ワークフローファイルに必須キーワードが含まれていません: ${keyword}`);
+					return false;
+				}
+			}
+
+			console.log('ワークフローファイルは正しくセットアップされています');
+			return true;
+		} catch (error) {
+			console.error('ワークフローファイルのチェック中にエラー:', error);
+			return false;
+		}
+	}
+
+	/**
+	 * セットアップが必要かチェックし、必要なら自動セットアップ。
+	 */
+	async ensureSetup(): Promise<void> {
+		if (!this.isSetupValid()) {
+			console.log('ワークフローが正しくセットアップされていません。自動セットアップを実行します。');
+			await this.setup(true); // サイレントモードでセットアップ。
 		}
 	}
 
