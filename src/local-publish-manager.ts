@@ -89,12 +89,91 @@ export class LocalPublishManager {
 
 		if (fs.existsSync(this.publishRepoDir)) {
 			new Notice('公開用リポジトリを更新しています...');
-			await execAsync('git pull', { cwd: this.publishRepoDir });
+
+			// git pullを実行（リトライ付き）。
+			await this.retryGitOperation(async () => {
+				await execAsync('git pull', {
+					cwd: this.publishRepoDir,
+					timeout: 30000  // 30秒タイムアウト。
+				});
+			}, 'git pull');
 		} else {
 			new Notice('公開用リポジトリをcloneしています...');
 			const repoUrl = `https://github.com/${this.settings.githubUsername}/${this.settings.publishRepo}.git`;
-			await execAsync(`git clone ${repoUrl} ${this.settings.publishRepo}`, { cwd: this.tmpDir });
+
+			// git cloneを実行（リトライ付き）。
+			await this.retryGitOperation(async () => {
+				await execAsync(`git clone ${repoUrl} ${this.settings.publishRepo}`, {
+					cwd: this.tmpDir,
+					timeout: 60000  // 60秒タイムアウト。
+				});
+			}, 'git clone');
 		}
+	}
+
+	/**
+	 * git操作をリトライ付きで実行。
+	 */
+	private async retryGitOperation(
+		operation: () => Promise<any>,
+		operationName: string,
+		maxRetries: number = 3
+	): Promise<void> {
+		let lastError: Error | null = null;
+
+		for (let attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				await operation();
+				return; // 成功。
+			} catch (error) {
+				lastError = error;
+				console.error(`${operationName} 失敗 (試行 ${attempt}/${maxRetries}):`, error.message);
+
+				// Windows環境でのforkエラーをチェック。
+				if (error.message.includes('cannot fork()') || error.message.includes('Resource temporarily unavailable')) {
+					if (attempt < maxRetries) {
+						new Notice(`${operationName} を再試行しています... (${attempt}/${maxRetries})`);
+						// 指数バックオフ: 2秒、4秒、8秒。
+						await this.sleep(2000 * Math.pow(2, attempt - 1));
+					}
+				} else {
+					// 他のエラーは即座に失敗。
+					throw error;
+				}
+			}
+		}
+
+		// すべての試行が失敗した場合。
+		const errorMessage = this.formatGitError(lastError!, operationName);
+		throw new Error(errorMessage);
+	}
+
+	/**
+	 * gitエラーメッセージをフォーマット。
+	 */
+	private formatGitError(error: Error, operationName: string): string {
+		const message = error.message;
+
+		if (message.includes('cannot fork()') || message.includes('Resource temporarily unavailable')) {
+			return `${operationName} に失敗しました（Windows環境のプロセス制限）。
+
+対処法:
+1. Obsidianを再起動してから再試行してください
+2. 他のgit操作を実行中の場合は完了を待ってください
+3. システムリソースを確認してください
+
+または、GitHub Actionsによる自動公開を使用してください（推奨）。
+詳細: ${error.message}`;
+		}
+
+		return `${operationName} に失敗しました: ${message}`;
+	}
+
+	/**
+	 * 指定時間待機。
+	 */
+	private sleep(ms: number): Promise<void> {
+		return new Promise(resolve => setTimeout(resolve, ms));
 	}
 
 	/**
@@ -297,11 +376,23 @@ export class LocalPublishManager {
 
 		new Notice('変更をコミットしています...');
 
-		await execAsync('git add -A', { cwd: this.publishRepoDir });
+		// git add。
+		await this.retryGitOperation(async () => {
+			await execAsync('git add -A', {
+				cwd: this.publishRepoDir,
+				timeout: 15000  // 15秒タイムアウト。
+			});
+		}, 'git add');
 
+		// git commit。
 		const commitMessage = `docs: Update published content (${new Date().toISOString()})`;
 		try {
-			await execAsync(`git commit -m "${commitMessage}"`, { cwd: this.publishRepoDir });
+			await this.retryGitOperation(async () => {
+				await execAsync(`git commit -m "${commitMessage}"`, {
+					cwd: this.publishRepoDir,
+					timeout: 15000  // 15秒タイムアウト。
+				});
+			}, 'git commit');
 		} catch (error) {
 			// コミットするものがない場合はエラーにならない。
 			if (!error.message.includes('nothing to commit')) {
@@ -311,7 +402,13 @@ export class LocalPublishManager {
 			return;
 		}
 
+		// git push。
 		new Notice('リモートにpushしています...');
-		await execAsync('git push', { cwd: this.publishRepoDir });
+		await this.retryGitOperation(async () => {
+			await execAsync('git push', {
+				cwd: this.publishRepoDir,
+				timeout: 60000  // 60秒タイムアウト。
+			});
+		}, 'git push');
 	}
 }

@@ -127,7 +127,11 @@ Vaultのcommit/pushを待たずに、すぐに公開したい場合:
 4. 公開用リポジトリに自動push
 5. GitHub Pagesが自動デプロイ（数分以内）
 
-注: この方式では、Vault自体をcommit/pushする必要がありません。
+**注意事項:**
+- この方式では、Vault自体をcommit/pushする必要がありません
+- Windows環境では、git操作でプロセス制限エラーが発生する場合があります
+- エラーが発生した場合は、Obsidianを再起動してから再試行してください
+- より安定した運用には、**GitHub Actions自動公開（推奨）**を使用してください
 
 ### 公開URLの確認
 
@@ -209,9 +213,38 @@ GitHub Actions変換スクリプト:
   3. 変換結果を公開用リポジトリにpush
 - **使用権限**: `GITHUB_TOKEN`（自動提供）
 
+## トラブルシューティング
+
+### 「今すぐ公開」ボタンでエラーが発生する
+
+**エラー: `cannot fork() for remote-https: Resource temporarily unavailable`**
+
+このエラーはWindows環境でgit操作が集中した際に発生します。
+
+**対処法:**
+1. Obsidianを再起動してから再試行する
+2. 他のgit操作が実行中の場合は完了を待つ
+3. システムリソース（メモリ、プロセス数）を確認する
+4. **推奨:** GitHub Actions自動公開を使用する（より安定）
+
+プラグインは自動的に3回までリトライしますが、それでも失敗する場合は上記の対処法をお試しください。
+
+### GitHub Actionsが動作しない
+
+1. 公開用リポジトリの Settings → Actions → General で、Workflowの実行が許可されているか確認
+2. 公開用リポジトリの Settings → Pages で、Source が「GitHub Actions」になっているか確認
+3. Vault側のワークフローファイル `.github/workflows/sync-to-quartz.yml` が存在するか確認
+4. GitHub Actionsのログを確認（リポジトリの Actions タブ）
+
+### ファイルが公開されない
+
+1. 公開対象ディレクトリの設定を確認（例: `Public/`）
+2. フロントマターで `published: false` が設定されていないか確認
+3. 除外パターンに該当していないか確認
+
 ## ライセンス
 
-MIT License
+CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
 
 ## 作者
 
