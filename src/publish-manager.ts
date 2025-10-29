@@ -128,6 +128,9 @@ export class PublishManager {
 				}
 			}
 
+			// 既存のHTMLファイルを削除。
+			await this.cleanupOldFiles();
+
 			// 公開対象ファイルを収集。
 			const files = await this.collectPublishableFiles();
 
@@ -244,6 +247,49 @@ export class PublishManager {
 			);
 
 			console.log(`アップロード完了: ${htmlPath}`);
+		}
+	}
+
+	/**
+	 * 既存の古いファイルを削除。
+	 */
+	private async cleanupOldFiles(): Promise<void> {
+		try {
+			new Notice('既存ファイルを削除しています...');
+
+			// リポジトリ内の全ファイルを取得。
+			const allFiles = await this.githubAPI.getAllFiles(
+				this.settings.publishRepo,
+				'',
+				'main'
+			);
+
+			// HTMLファイルのみをフィルタ。
+			const htmlFiles = allFiles.filter(file => file.endsWith('.html'));
+
+			if (htmlFiles.length === 0) {
+				console.log('削除対象のファイルはありません');
+				return;
+			}
+
+			console.log(`${htmlFiles.length}個のファイルを削除します`);
+
+			// 各HTMLファイルを削除。
+			for (const file of htmlFiles) {
+				await this.githubAPI.deleteFile(
+					this.settings.publishRepo,
+					file,
+					'Clean up old files',
+					'main'
+				);
+				console.log(`削除完了: ${file}`);
+			}
+
+			new Notice(`${htmlFiles.length}個の古いファイルを削除しました`);
+		} catch (error) {
+			console.error('ファイル削除エラー:', error);
+			// エラーが発生しても公開は続行する。
+			new Notice('一部のファイルの削除に失敗しましたが、公開を続行します');
 		}
 	}
 

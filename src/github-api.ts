@@ -149,6 +149,86 @@ export class GitHubAPI {
 	}
 
 	/**
+	 * ファイルを削除。
+	 */
+	async deleteFile(
+		repoName: string,
+		filePath: string,
+		message: string,
+		branch: string = 'main'
+	): Promise<void> {
+		try {
+			// ファイルのSHAを取得。
+			const { data } = await this.octokit.repos.getContent({
+				owner: this.username,
+				repo: repoName,
+				path: filePath,
+				ref: branch,
+			});
+
+			if ('sha' in data) {
+				// ファイルを削除。
+				await this.octokit.repos.deleteFile({
+					owner: this.username,
+					repo: repoName,
+					path: filePath,
+					message: message,
+					sha: data.sha,
+					branch: branch,
+				});
+			}
+		} catch (error) {
+			if (error.status === 404) {
+				// ファイルが存在しない場合は無視。
+				return;
+			}
+			console.error(`ファイル削除エラー (${filePath}):`, error);
+			throw new Error(`ファイルの削除に失敗しました: ${error.message}`);
+		}
+	}
+
+	/**
+	 * リポジトリ内の全ファイルを取得(再帰的)。
+	 */
+	async getAllFiles(
+		repoName: string,
+		path: string = '',
+		branch: string = 'main'
+	): Promise<string[]> {
+		try {
+			const { data } = await this.octokit.repos.getContent({
+				owner: this.username,
+				repo: repoName,
+				path: path,
+				ref: branch,
+			});
+
+			const files: string[] = [];
+
+			if (Array.isArray(data)) {
+				for (const item of data) {
+					if (item.type === 'file') {
+						files.push(item.path);
+					} else if (item.type === 'dir') {
+						// ディレクトリの場合は再帰的に取得。
+						const subFiles = await this.getAllFiles(repoName, item.path, branch);
+						files.push(...subFiles);
+					}
+				}
+			}
+
+			return files;
+		} catch (error) {
+			if (error.status === 404) {
+				// パスが存在しない場合は空配列を返す。
+				return [];
+			}
+			console.error('ファイル一覧取得エラー:', error);
+			throw new Error(`ファイル一覧の取得に失敗しました: ${error.message}`);
+		}
+	}
+
+	/**
 	 * 複数ファイルを一括アップロード(バッチ処理)。
 	 */
 	async uploadFiles(
