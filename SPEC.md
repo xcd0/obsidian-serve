@@ -6,9 +6,10 @@ Obsidian vault内の指定ディレクトリをGitHub Pagesで公開するプラ
 
 ### 特徴
 
-- **別リポジトリ方式**: vaultのprivateリポジトリとは別に、公開用リポジトリを自動作成
-- **Git連動**: vaultのコミット時に自動でビルド・公開
-- **Obsidian Publish風**: グラフビュー、バックリンク、検索機能を搭載
+- **別リポジトリ方式**: vaultのprivateリポジトリとは別に、公開用リポジトリを使用
+- **GitHub Actions方式**: Personal Access Token不要、セキュア
+- **Git連動**: vaultのcommit & pushで自動ビルド・公開
+- **Obsidian Publish風**: グラフビュー、バックリンク、検索機能を搭載予定
 - **GitHub無料プラン対応**: publicリポジトリを使用
 
 ## アーキテクチャ
@@ -20,26 +21,26 @@ Obsidian vault内の指定ディレクトリをGitHub Pagesで公開するプラ
 │  Private Repository (Vault全体)     │
 │  ・既存のvault管理用                 │
 │  ・すべてのノート、設定、非公開ファイル │
+│  ・.github/workflows/ (プラグインが生成) │
 │  ・ユーザーが通常通りgit commit/push  │
 └──────────────┬──────────────────────┘
-               │ Git hook検知
-               │ (post-commit)
+               │ git push
                ↓
 ┌─────────────────────────────────────┐
-│  Obsidian Plugin                    │
-│  1. コミットされたファイルを検出      │
-│  2. 公開対象ディレクトリのみフィルタ  │
-│  3. Markdown→HTML変換 + データ生成   │
+│  GitHub Actions                     │
+│  1. 公開対象ディレクトリの変更を検知  │
+│  2. Node.js環境をセットアップ        │
+│  3. Markdown→HTML変換スクリプト実行  │
 │  4. 変換結果を公開用リポジトリにpush  │
 └──────────────┬──────────────────────┘
-               │ GitHub API経由でpush
+               │ GITHUB_TOKEN使用
                ↓
 ┌─────────────────────────────────────┐
 │  Public Repository (公開用)          │
-│  ・プラグインが自動作成/管理          │
-│  ・変換済みHTML + JS/CSS + データ    │
+│  ・ブラウザから手動作成               │
+│  ・変換済みHTML + index.html         │
 │  ・公開したいコンテンツのみ           │
-│  └─ GitHub Pages有効化               │
+│  └─ GitHub Pages有効化（手動）       │
 └──────────────┬──────────────────────┘
                │ 自動デプロイ
                ↓
@@ -59,48 +60,37 @@ my-obsidian-vault/          # privateリポジトリ
 │       └── github-pages-publish/
 │           ├── main.js
 │           ├── manifest.json
-│           └── data.json    # 設定ファイル (gitignore推奨)
+│           └── data.json    # 設定ファイル
+├── .github/                # プラグインが自動生成
+│   ├── workflows/
+│   │   └── publish-to-pages.yml  # GitHub Actionsワークフロー
+│   └── scripts/
+│       ├── convert.mjs     # Markdown→HTML変換スクリプト
+│       └── package.json    # 変換スクリプトの依存関係
 ├── Private/                # 非公開ノート
 │   ├── diary.md
 │   └── secrets.md
-├── Public/                 # 公開対象ディレクトリ
-│   ├── tech/
-│   │   ├── typescript.md
-│   │   └── obsidian.md
-│   └── blog/
-│       └── 2025-01-01.md
-└── .git/
-    └── hooks/
-        └── post-commit     # プラグインが自動生成
+└── Public/                 # 公開対象ディレクトリ
+    ├── tech/
+    │   ├── typescript.md
+    │   └── obsidian.md
+    └── blog/
+        └── 2025-01-01.md
 ```
 
-#### Public Repository (自動生成)
+#### Public Repository (手動作成)
 ```
-my-public-notes/            # publicリポジトリ (プラグインが管理)
-├── index.html              # トップページ
-├── notes/                  # 変換済みHTML
-│   ├── tech/
-│   │   ├── typescript.html
-│   │   └── obsidian.html
-│   └── blog/
-│       └── 2025-01-01.html
-├── assets/                 # 静的ファイル
-│   ├── css/
-│   │   ├── theme.css       # Obsidian風テーマ
-│   │   └── graph.css       # グラフビュー用
-│   ├── js/
-│   │   ├── app.js          # メインアプリ
-│   │   ├── graph.js        # グラフビュー
-│   │   ├── search.js       # 検索機能
-│   │   └── navigation.js   # ナビゲーション
-│   └── images/             # 画像ファイル
-│       └── image.png
-└── data/                   # 生成データ
-    ├── graph.json          # グラフデータ
-    ├── search-index.json   # 検索インデックス
-    ├── backlinks.json      # バックリンク情報
-    └── file-tree.json      # ファイルツリー構造
+my-public-notes/            # publicリポジトリ (GitHub Actionsが管理)
+├── index.html              # トップページ（自動生成）
+├── tech/                   # 変換済みHTML
+│   ├── typescript.html
+│   └── obsidian.html
+└── blog/
+    └── 2025-01-01.html
 ```
+
+注: GitHub Actions方式では、assets/やdata/などの静的ファイルは今後のフェーズで実装予定。
+現在はシンプルなHTMLファイルのみを生成。
 
 ## データ構造
 
@@ -108,27 +98,20 @@ my-public-notes/            # publicリポジトリ (プラグインが管理)
 
 ```typescript
 interface PluginSettings {
-	// GitHub認証。
-	githubToken: string;                    // Personal Access Token。
+	// GitHub設定。
 	githubUsername: string;                 // GitHubユーザー名。
 
 	// リポジトリ設定。
 	publishRepo: string;                    // 公開用リポジトリ名。
-	publishRepoVisibility: 'public' | 'private'; // public推奨(無料)。
-	autoCreateRepo: boolean;                // リポジトリ自動作成。
 
 	// Vault設定。
 	publishDirectory: string;               // 公開対象ディレクトリ(例: "Public/")。
-
-	// Git連動。
-	gitHookEnabled: boolean;                // post-commitフックを使用。
-	autoPushOnCommit: boolean;              // コミット時に自動公開。
 
 	// 除外設定。
 	excludePatterns: string[];              // 除外パターン(例: ["draft/*", "*.tmp"])。
 	respectFrontmatter: boolean;            // published: falseを尊重。
 
-	// 機能設定。
+	// 機能設定（今後実装予定）。
 	features: {
 		graphView: boolean;                 // グラフビュー表示。
 		backlinks: boolean;                 // バックリンク表示。
@@ -148,6 +131,8 @@ interface PluginSettings {
 	};
 }
 ```
+
+注: GitHub Actions方式では、Personal Access Tokenやgitフック設定は不要。
 
 ### グラフデータ (graph.json)
 
@@ -196,14 +181,22 @@ interface FileNode {
 ### 初回セットアップ
 
 1. プラグインインストール
-2. 設定画面で入力:
-   - GitHub Personal Access Token (repo権限)
+2. ブラウザからGitHubで公開用リポジトリを作成:
+   - Public リポジトリを作成 (例: "my-public-notes")
+   - GitHub Pagesを有効化 (Settings → Pages)
+3. 設定画面で入力:
+   - GitHubユーザー名
    - 公開用リポジトリ名 (例: "my-public-notes")
    - 公開対象ディレクトリ (例: "Public/")
-3. プラグインが自動実行:
-   - 公開用リポジトリを作成(username/my-public-notes)
-   - GitHub Pagesを有効化
-   - Gitフックを設定(.git/hooks/post-commit)
+4. 「GitHub Actions をセットアップ」コマンドを実行
+   - Vaultリポジトリに .github/workflows/ が自動生成される
+   - .github/scripts/convert.mjs も自動生成される
+5. Vaultをcommit & push
+   ```bash
+   git add .
+   git commit -m "Setup GitHub Actions"
+   git push
+   ```
 
 ### 日常運用フロー
 
@@ -211,21 +204,16 @@ interface FileNode {
 [ユーザー操作]
 1. Obsidianでノート編集
 2. Vaultをgit commit
-3. git push origin main (任意)
+3. git push origin main
 
-[プラグインが自動実行]
-4. post-commitフック発火
-5. 公開ディレクトリ内の変更検出
-   例: Public/note1.md が変更された
-6. 変換処理:
+[GitHub Actionsが自動実行]
+4. 公開対象ディレクトリの変更を検知
+5. Node.js環境をセットアップ
+6. 変換スクリプト (convert.mjs) を実行:
+   - Markdownファイルを収集
    - note1.md → note1.html
-   - グラフデータ更新
-   - 検索インデックス更新
-   - バックリンク情報更新
-7. 公開用リポジトリにpush
-   - git clone/pull (最新状態取得)
-   - 変換ファイルをコピー
-   - git commit & push
+   - index.htmlを生成
+7. 変換結果を公開用リポジトリにpush (GITHUB_TOKEN使用)
 8. GitHub Pagesが自動デプロイ (数分以内)
 ```
 
@@ -262,9 +250,10 @@ interface FileNode {
 
 ### トークン管理
 
-- Personal Access Tokenは暗号化してdata.jsonに保存
-- data.jsonは.gitignoreに追加推奨
-- 必要最小限の権限(`repo`スコープのみ)
+GitHub Actions方式では、Personal Access Tokenは不要。
+- GitHub Actionsの `GITHUB_TOKEN` を自動使用
+- トークンをローカルに保存しない（セキュリティ向上）
+- ワークフローファイルはVaultリポジトリにcommit可能
 
 ### 誤公開防止
 
@@ -286,14 +275,16 @@ interface FileNode {
 ### プラグイン側
 - TypeScript
 - Obsidian Plugin API
-- Octokit (GitHub API)
+- esbuild (ビルドツール)
+
+### GitHub Actions変換スクリプト
+- Node.js (ES Modules)
 - markdown-it (Markdown parser)
-- simple-git (Git操作)
 
 ### 公開サイト側
-- 静的HTML/CSS/JS
-- D3.js or Force-Graph (グラフビュー)
-- Lunr.js (検索)
+- 静的HTML/CSS
+- 将来的に: D3.js or Force-Graph (グラフビュー)
+- 将来的に: Lunr.js (検索)
 - vanilla JavaScript (フレームワークレス)
 
 ## 開発フェーズ

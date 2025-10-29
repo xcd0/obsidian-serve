@@ -4,21 +4,14 @@
  * プラグイン設定。
  */
 export interface PluginSettings {
-	//! GitHub認証。
-	githubToken: string;                    // Personal Access Token。
+	//! GitHub設定。
 	githubUsername: string;                 // GitHubユーザー名。
 
 	//! リポジトリ設定。
 	publishRepo: string;                    // 公開用リポジトリ名。
-	publishRepoVisibility: 'public' | 'private'; // public推奨(無料)。
-	autoCreateRepo: boolean;                // リポジトリ自動作成。
 
 	//! Vault設定。
 	publishDirectory: string;               // 公開対象ディレクトリ(例: "Public/")。
-
-	//! Git連動。
-	gitHookEnabled: boolean;                // post-commitフックを使用。
-	autoPushOnCommit: boolean;              // コミット時に自動公開。
 
 	//! 除外設定。
 	excludePatterns: string[];              // 除外パターン(例: ["draft/*", "*.tmp"])。
@@ -48,14 +41,9 @@ export interface PluginSettings {
  * デフォルト設定値。
  */
 export const DEFAULT_SETTINGS: PluginSettings = {
-	githubToken: '',
 	githubUsername: '',
 	publishRepo: '',
-	publishRepoVisibility: 'public',
-	autoCreateRepo: true,
 	publishDirectory: 'Public/',
-	gitHookEnabled: true,
-	autoPushOnCommit: true,
 	excludePatterns: ['draft/*', '*.tmp', 'Private/*'],
 	respectFrontmatter: true,
 	features: {

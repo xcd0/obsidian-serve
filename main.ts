@@ -1,14 +1,13 @@
 import { Notice, Plugin } from 'obsidian';
 import { GitHubPagesPublishSettingTab } from './src/settings';
 import { DEFAULT_SETTINGS, type PluginSettings } from './src/types';
-import { PublishManager } from './src/publish-manager';
+import { GitHubActionsSetup } from './src/github-actions-setup';
 
 /**
  * GitHub Pages Publishプラグインのメインクラス。
  */
 export default class GitHubPagesPublishPlugin extends Plugin {
 	settings: PluginSettings;
-	publishManager: PublishManager | null = null;
 
 	/**
 	 * プラグインの読み込み時に実行。
@@ -16,45 +15,26 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		//! PublishManagerを初期化。
-		this.initializePublishManager();
-
 		//! リボンアイコンを追加。
 		const ribbonIconEl = this.addRibbonIcon(
-			'upload-cloud',
-			'GitHub Pagesに公開',
+			'settings',
+			'GitHub Actions セットアップ',
 			(evt: MouseEvent) => {
-				this.publishToGitHubPages();
+				this.setupGitHubActions();
 			}
 		);
 		ribbonIconEl.addClass('github-pages-publish-ribbon-class');
 
 		//! ステータスバーアイテムを追加。
 		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('GitHub Pages: 準備完了');
+		statusBarItemEl.setText('GitHub Pages: GitHub Actions方式');
 
 		//! コマンドパレットにコマンドを追加。
 		this.addCommand({
-			id: 'publish-to-github-pages',
-			name: 'GitHub Pagesに公開',
+			id: 'setup-github-actions',
+			name: 'GitHub Actions をセットアップ',
 			callback: () => {
-				this.publishToGitHubPages();
-			}
-		});
-
-		this.addCommand({
-			id: 'init-github-repository',
-			name: 'GitHub公開用リポジトリを初期化',
-			callback: () => {
-				this.initializeRepository();
-			}
-		});
-
-		this.addCommand({
-			id: 'test-github-auth',
-			name: 'GitHub認証をテスト',
-			callback: () => {
-				this.testAuthentication();
+				this.setupGitHubActions();
 			}
 		});
 
@@ -92,8 +72,6 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 		try {
 			await this.saveData(this.settings);
 			console.log('設定を保存しました:', this.getSettingsPath());
-			//! 設定が変更されたらPublishManagerを再初期化。
-			this.initializePublishManager();
 		} catch (error) {
 			console.error('設定の保存に失敗しました:', error);
 			new Notice('設定の保存に失敗しました');
@@ -108,95 +86,20 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 	}
 
 	/**
-	 * PublishManagerを初期化。
+	 * GitHub Actions をセットアップ。
 	 */
-	private initializePublishManager() {
-		//! 必要な設定が揃っている場合のみ初期化。
-		if (this.settings.githubToken && this.settings.githubUsername) {
-			this.publishManager = new PublishManager(this.app, this.settings);
-		}
-	}
-
-	/**
-	 * GitHub Pagesに公開。
-	 */
-	async publishToGitHubPages() {
+	async setupGitHubActions() {
 		//! 設定の検証。
 		if (!this.validateSettings()) {
 			return;
 		}
 
 		try {
-			if (!this.publishManager) {
-				this.initializePublishManager();
-			}
-
-			if (!this.publishManager) {
-				new Notice('PublishManagerの初期化に失敗しました');
-				return;
-			}
-
-			await this.publishManager.publish();
+			const setup = new GitHubActionsSetup(this.app, this.settings);
+			await setup.setup();
 		} catch (error) {
-			console.error('公開エラー:', error);
-			new Notice(`公開エラー: ${error.message}`);
-		}
-	}
-
-	/**
-	 * 公開用リポジトリを初期化。
-	 */
-	async initializeRepository() {
-		//! 設定の検証。
-		if (!this.validateSettings()) {
-			return;
-		}
-
-		try {
-			if (!this.publishManager) {
-				this.initializePublishManager();
-			}
-
-			if (!this.publishManager) {
-				new Notice('PublishManagerの初期化に失敗しました');
-				return;
-			}
-
-			await this.publishManager.initializeRepository();
-		} catch (error) {
-			console.error('初期化エラー:', error);
-			new Notice(`初期化エラー: ${error.message}`);
-		}
-	}
-
-	/**
-	 * GitHub認証をテスト。
-	 */
-	async testAuthentication() {
-		if (!this.settings.githubToken || !this.settings.githubUsername) {
-			new Notice('GitHub TokenとUsernameを設定してください');
-			return;
-		}
-
-		try {
-			if (!this.publishManager) {
-				this.initializePublishManager();
-			}
-
-			if (!this.publishManager) {
-				new Notice('PublishManagerの初期化に失敗しました');
-				return;
-			}
-
-			const success = await this.publishManager.testAuthentication();
-			if (success) {
-				new Notice('GitHub認証に成功しました!');
-			} else {
-				new Notice('GitHub認証に失敗しました');
-			}
-		} catch (error) {
-			console.error('認証テストエラー:', error);
-			new Notice(`認証エラー: ${error.message}`);
+			console.error('GitHub Actions セットアップエラー:', error);
+			new Notice(`セットアップエラー: ${error.message}`);
 		}
 	}
 
@@ -204,11 +107,6 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 	 * 設定の検証。
 	 */
 	private validateSettings(): boolean {
-		if (!this.settings.githubToken) {
-			new Notice('GitHub Personal Access Tokenを設定してください。');
-			return false;
-		}
-
 		if (!this.settings.githubUsername) {
 			new Notice('GitHubユーザー名を設定してください。');
 			return false;

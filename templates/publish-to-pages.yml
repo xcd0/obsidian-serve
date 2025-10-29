@@ -1,0 +1,53 @@
+name: Publish to GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - '{{PUBLISH_DIR}}/**'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout vault repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: .github/scripts/package.json
+
+      - name: Install dependencies
+        working-directory: .github/scripts
+        run: npm ci
+
+      - name: Convert Markdown to HTML
+        working-directory: .github/scripts
+        run: node convert.mjs
+        env:
+          PUBLISH_DIR: {{PUBLISH_DIR}}
+          SITE_TITLE: {{SITE_TITLE}}
+          CUSTOM_CSS: {{CUSTOM_CSS}}
+          EXCLUDE_PATTERNS: {{EXCLUDE_PATTERNS}}
+          RESPECT_FRONTMATTER: {{RESPECT_FRONTMATTER}}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .github/scripts/dist
+          external_repository: {{GITHUB_USERNAME}}/{{PUBLISH_REPO}}
+          publish_branch: main
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'docs: Update published content'
+          force_orphan: true

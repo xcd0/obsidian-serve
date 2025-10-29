@@ -1,0 +1,12 @@
+{
+  "name": "obsidian-github-pages-converter",
+  "version": "1.0.0",
+  "description": "Markdown to HTML converter for Obsidian GitHub Pages Publish",
+  "type": "module",
+  "scripts": {
+    "convert": "node convert.mjs"
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0"
+  }
+}

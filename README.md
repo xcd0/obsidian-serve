@@ -2,20 +2,22 @@
 
 Obsidian vault内の指定ディレクトリをGitHub Pagesで公開するプラグインです。
 
-## 機能
+## 特徴
 
-- **Git連動**: vaultのコミット時に自動でGitHub Pagesに公開
-- **Obsidian Publish風デザイン**: グラフビュー、バックリンク、検索機能を搭載
-- **プライバシー保護**: vaultのprivateリポジトリとは別の公開用リポジトリを使用
-- **選択的公開**: 指定ディレクトリのみを公開対象に
+- ✅ **Personal Access Token不要**: GitHub Actionsの自動トークンを使用
+- ✅ **セキュア**: ローカルにトークンを保存しない
+- ✅ **自動公開**: Vaultをcommit & pushするだけで自動デプロイ
+- ✅ **プライバシー保護**: vaultのprivateリポジトリとは別の公開用リポジトリを使用
+- ✅ **選択的公開**: 指定ディレクトリのみを公開対象に
+- ✅ **index.html自動生成**: 公開されたノート一覧ページを自動生成
 
 ## アーキテクチャ
 
 ```
 Private Vault Repository
-  ↓ (Git hook)
-Obsidian Plugin
-  ↓ (変換 & push)
+  ↓ (commit & push)
+GitHub Actions
+  ↓ (Markdown→HTML変換)
 Public Repository
   ↓ (GitHub Pages)
 公開サイト
@@ -24,14 +26,20 @@ Public Repository
 ### リポジトリ構成
 
 - **Private Repository**: Vault全体を管理（既存のリポジトリ）
-- **Public Repository**: プラグインが自動作成・管理する公開用リポジトリ
+- **Public Repository**: ブラウザから手動作成する公開用リポジトリ
+
+### GitHub Actions方式のメリット
+
+1. Personal Access Tokenが不要（セキュリティ向上）
+2. 変換処理がGitHub上で実行される（ローカル負荷軽減）
+3. CI/CD的な透明性（GitHub ActionsのUIで実行状況確認可能）
 
 ## セットアップ
 
 ### 前提条件
 
 1. ObsidianのvaultがGitで管理されている
-2. GitHub Personal Access Token (repo権限)
+2. GitHubアカウント（無料プラン可）
 
 ### インストール
 
@@ -47,20 +55,50 @@ Public Repository
 
 ### 初期設定
 
-1. 設定 → Community plugins → GitHub Pages Publish
-2. GitHub Personal Access Tokenを入力
-3. 公開用リポジトリ名を指定（例: "my-published-notes"）
-4. 公開対象ディレクトリを指定（例: "Public/"）
-5. "Initialize Repository"をクリック
+1. **公開用リポジトリをブラウザから作成**
+   - GitHub → New repository → Public リポジトリを作成
+   - 例: `my-published-notes`
+   - ⚠️ 必ずPublicリポジトリにしてください（無料プランでGitHub Pagesを使用するため）
+
+2. **GitHub Pagesを有効化**
+   - リポジトリ設定 → Pages
+   - Source: Deploy from a branch
+   - Branch: main / (root) → Save
+
+3. **プラグイン設定を入力**
+   - 設定 → Community plugins → GitHub Pages Publish
+   - GitHubユーザー名を入力
+   - 公開用リポジトリ名を入力（例: "my-published-notes"）
+   - 公開対象ディレクトリを指定（例: "Public/"）
+
+4. **GitHub Actions をセットアップ**
+   - コマンドパレット (Ctrl+P) → 「GitHub Actions をセットアップ」を実行
+   - Vaultリポジトリに `.github/workflows/` が自動生成されます
+
+5. **Vaultを commit & push**
+   ```bash
+   git add .
+   git commit -m "Setup GitHub Actions for publishing"
+   git push
+   ```
+
+6. **完了！**
+   - 公開対象ディレクトリを編集してpushすると、自動的にGitHub Pagesに公開されます
 
 ## 使い方
 
 ### 基本的な使い方
 
 1. Obsidianでノートを編集
-2. Vaultをgit commit
-3. プラグインが自動的に公開用リポジトリにpush
-4. GitHub Pagesが自動デプロイ（数分以内）
+2. Vaultをgit commit & push
+3. GitHub Actionsが自動的にMarkdown→HTML変換
+4. 公開用リポジトリに自動push
+5. GitHub Pagesが自動デプロイ（数分以内）
+
+### 公開URLの確認
+
+- `https://<username>.github.io/<repository-name>/` にアクセス
+- 例: `https://xcd0.github.io/public-memo/`
 
 ### ディレクトリ構造例
 
@@ -106,21 +144,36 @@ npm run build   # 本番ビルド
 
 ### 依存ライブラリ
 
-- `@octokit/rest`: GitHub API連携
+プラグイン本体:
+- Obsidian Plugin API
+- esbuild（ビルドツール）
+
+GitHub Actions変換スクリプト:
 - `markdown-it`: Markdown→HTML変換
-- `simple-git`: Git操作
 
 ## 設定項目
 
 | 項目 | 説明 | デフォルト |
 |------|------|------------|
-| GitHub Token | Personal Access Token (repo権限) | - |
+| GitHub Username | GitHubユーザー名 | - |
 | Repository Name | 公開用リポジトリ名 | - |
 | Publish Directory | 公開対象ディレクトリ | "Public/" |
-| Auto Publish | コミット時に自動公開 | true |
+| Exclude Patterns | 除外パターン（カンマ区切り） | "draft/*,*.tmp,Private/*" |
+| Respect Frontmatter | published: falseを尊重 | true |
 | Graph View | グラフビュー表示 | true |
 | Backlinks | バックリンク表示 | true |
 | Search | 検索機能 | true |
+
+## GitHub Actionsワークフロー
+
+プラグインが自動生成する `.github/workflows/publish-to-pages.yml` の内容:
+
+- **トリガー**: 公開対象ディレクトリへのpush
+- **実行内容**:
+  1. Node.js環境のセットアップ
+  2. Markdown→HTML変換スクリプトの実行
+  3. 変換結果を公開用リポジトリにpush
+- **使用権限**: `GITHUB_TOKEN`（自動提供）
 
 ## ライセンス
 
