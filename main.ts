@@ -113,7 +113,7 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 	}
 
 	/**
-	 * 今すぐ公開（tmp/のリポジトリにpush）。
+	 * 今すぐ公開（obsidian-gitのcommit & pushを実行）。
 	 */
 	async publishNow() {
 		//! 設定の検証。
@@ -122,18 +122,46 @@ export default class GitHubPagesPublishPlugin extends Plugin {
 		}
 
 		try {
-			//! Vaultのベースパスを取得。
-			const vaultBasePath = (this.app.vault.adapter as any).basePath;
-			if (!vaultBasePath) {
-				new Notice('Vaultパスが取得できません');
+			// obsidian-gitプラグインがインストールされているか確認。
+			const obsidianGitPlugin = (this.app as any).plugins.getPlugin('obsidian-git');
+
+			if (!obsidianGitPlugin) {
+				new Notice('obsidian-gitプラグインがインストールされていません。\n\n' +
+					'このプラグインはobsidian-gitと連携して動作します。\n' +
+					'obsidian-gitをインストールしてから再試行してください。', 10000);
 				return;
 			}
 
-			const manager = new LocalPublishManager(this.app, this.settings, vaultBasePath);
-			await manager.publish();
+			// obsidian-gitが有効になっているか確認。
+			if (!obsidianGitPlugin._loaded) {
+				new Notice('obsidian-gitプラグインが有効になっていません。\n\n' +
+					'設定 → Community plugins でobsidian-gitを有効化してください。', 10000);
+				return;
+			}
+
+			new Notice('変更をコミット・プッシュしています...');
+
+			// obsidian-gitのcommit & pushコマンドを実行。
+			const success = await (this.app as any).commands.executeCommandById('obsidian-git:commit-push-specified-message');
+
+			if (success === false) {
+				// コマンドが見つからない場合は別のコマンドIDを試す。
+				const fallbackSuccess = await (this.app as any).commands.executeCommandById('obsidian-git:commit-push');
+
+				if (fallbackSuccess === false) {
+					new Notice('obsidian-gitのコマンド実行に失敗しました。\n\n' +
+						'コマンドパレットから「Obsidian Git: Commit and push」を手動で実行してください。', 10000);
+					return;
+				}
+			}
+
+			// 成功時のメッセージはobsidian-gitが表示するため、ここでは表示しない。
+			console.log('obsidian-gitのcommit & pushコマンドを実行しました');
+
 		} catch (error) {
 			console.error('公開エラー:', error);
-			new Notice(`公開エラー: ${error.message}`);
+			new Notice(`公開エラー: ${error.message}\n\n` +
+				'コマンドパレットから「Obsidian Git: Commit and push」を手動で実行してください。', 10000);
 		}
 	}
 
