@@ -151,7 +151,7 @@ export class GitHubActionsSetup {
 	}
 
 	/**
-	 * Quartz設定オブジェクトをJSON文字列として生成。
+	 * Quartz設定オブジェクトをJSON文字列として生成（1行）。
 	 */
 	private generateQuartzConfig(): string {
 		const config = {
@@ -163,7 +163,8 @@ export class GitHubActionsSetup {
 			typography: this.settings.quartz.theme.typography,
 			colors: this.settings.quartz.theme.colors,
 		};
-		return JSON.stringify(config, null, 2).replace(/\$/g, '\\$');
+		// 1行のJSON文字列として生成（YAMLシンタックスエラーを防ぐため）。
+		return JSON.stringify(config).replace(/\$/g, '\\$').replace(/'/g, "\\'");
 	}
 
 
