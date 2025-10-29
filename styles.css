@@ -3,3 +3,42 @@
 .github-pages-publish-ribbon-class {
 	color: var(--interactive-accent);
 }
+
+/* タブナビゲーション */
+.settings-tab-nav {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 20px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.settings-tab-button {
+	padding: 8px 16px;
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 500;
+	transition: all 0.2s ease;
+}
+
+.settings-tab-button:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.settings-tab-button.is-active {
+	color: var(--interactive-accent);
+	border-bottom-color: var(--interactive-accent);
+}
+
+/* タブコンテンツ */
+.settings-tab-content {
+	display: none;
+}
+
+.settings-tab-content.is-active {
+	display: block;
+}

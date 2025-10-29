@@ -143,6 +143,7 @@ class SetupGuideModal extends Modal {
  */
 export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 	plugin: GitHubPagesPublishPlugin;
+	private currentTab: string = 'basic';
 
 	/**
 	 * コンストラクタ。
@@ -153,12 +154,68 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 	}
 
 	/**
+	 * タブナビゲーションを描画。
+	 */
+	private renderTabNavigation(containerEl: HTMLElement): void {
+		const navDiv = containerEl.createDiv({ cls: 'settings-tab-nav' });
+
+		const tabs = [
+			{ id: 'basic', label: '基本設定' },
+			{ id: 'quartz', label: 'Quartz設定' },
+			{ id: 'features', label: '機能設定' },
+			{ id: 'actions', label: '管理' },
+		];
+
+		tabs.forEach(tab => {
+			const button = navDiv.createEl('button', {
+				text: tab.label,
+				cls: 'settings-tab-button'
+			});
+
+			if (tab.id === this.currentTab) {
+				button.addClass('is-active');
+			}
+
+			button.addEventListener('click', () => {
+				this.currentTab = tab.id;
+				this.display();
+			});
+		});
+	}
+
+	/**
 	 * 設定画面を表示。
 	 */
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
 
+		// タブナビゲーションを描画。
+		this.renderTabNavigation(containerEl);
+
+		// 現在のタブに応じてコンテンツを描画。
+		const tabContentDiv = containerEl.createDiv({ cls: 'settings-tab-content is-active' });
+
+		switch (this.currentTab) {
+			case 'basic':
+				this.renderBasicTab(tabContentDiv);
+				break;
+			case 'quartz':
+				this.renderQuartzTab(tabContentDiv);
+				break;
+			case 'features':
+				this.renderFeaturesTab(tabContentDiv);
+				break;
+			case 'actions':
+				this.renderActionsTab(tabContentDiv);
+				break;
+		}
+	}
+
+	/**
+	 * 基本設定タブを描画。
+	 */
+	private renderBasicTab(containerEl: HTMLElement): void {
 		//! 初期設定ガイドボタン。
 		new Setting(containerEl)
 			.setName('📋 初期設定ガイド')
@@ -232,7 +289,103 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 					this.plugin.settings.respectFrontmatter = value;
 					await this.plugin.saveSettings();
 				}));
+	}
 
+	/**
+	 * Quartz設定タブを描画。
+	 */
+	private renderQuartzTab(containerEl: HTMLElement): void {
+		//! Quartz設定セクション。
+		containerEl.createEl('h2', { text: 'Quartz設定' });
+
+		new Setting(containerEl)
+			.setName('Quartz自動セットアップを有効化')
+			.setDesc('GitHub Actions実行時に公開用リポジトリへQuartzを自動セットアップ')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.quartz.enableAutoSetup)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.enableAutoSetup = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('ロケール')
+			.setDesc('サイトのロケール設定')
+			.addDropdown(dropdown => dropdown
+				.addOptions({
+					'ja-JP': '日本語',
+					'en-US': 'English',
+					'zh-CN': '简体中文',
+					'zh-TW': '繁體中文',
+					'ko-KR': '한국어',
+				})
+				.setValue(this.plugin.settings.quartz.locale)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.locale = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('SPA（シングルページアプリケーション）')
+			.setDesc('ページ遷移を高速化（推奨）')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.quartz.enableSPA)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.enableSPA = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('ホバープレビュー')
+			.setDesc('リンクにホバーした時にプレビューを表示')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.quartz.enablePopovers)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.enablePopovers = value;
+					await this.plugin.saveSettings();
+				}));
+
+		// テーマ設定（折りたたみ可能）
+		containerEl.createEl('h3', { text: 'テーマ設定' });
+
+		new Setting(containerEl)
+			.setName('ヘッダーフォント')
+			.setDesc('見出しに使用するフォント')
+			.addText(text => text
+				.setPlaceholder('Schibsted Grotesk')
+				.setValue(this.plugin.settings.quartz.theme.typography.header)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.theme.typography.header = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('本文フォント')
+			.setDesc('本文に使用するフォント')
+			.addText(text => text
+				.setPlaceholder('Source Sans Pro')
+				.setValue(this.plugin.settings.quartz.theme.typography.body)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.theme.typography.body = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('コードフォント')
+			.setDesc('コードブロックに使用するフォント')
+			.addText(text => text
+				.setPlaceholder('IBM Plex Mono')
+				.setValue(this.plugin.settings.quartz.theme.typography.code)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.theme.typography.code = value;
+					await this.plugin.saveSettings();
+				}));
+	}
+
+	/**
+	 * 機能設定タブを描画。
+	 */
+	private renderFeaturesTab(containerEl: HTMLElement): void {
 		//! 機能設定セクション。
 		containerEl.createEl('h2', { text: '機能設定' });
 
@@ -320,93 +473,12 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 					this.plugin.settings.customization.customCSS = value;
 					await this.plugin.saveSettings();
 				}));
+	}
 
-		//! Quartz設定セクション。
-		containerEl.createEl('h2', { text: 'Quartz設定' });
-
-		new Setting(containerEl)
-			.setName('Quartz自動セットアップを有効化')
-			.setDesc('GitHub Actions実行時に公開用リポジトリへQuartzを自動セットアップ')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.quartz.enableAutoSetup)
-				.onChange(async (value) => {
-					this.plugin.settings.quartz.enableAutoSetup = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('ロケール')
-			.setDesc('サイトのロケール設定')
-			.addDropdown(dropdown => dropdown
-				.addOptions({
-					'ja-JP': '日本語',
-					'en-US': 'English',
-					'zh-CN': '简体中文',
-					'zh-TW': '繁體中文',
-					'ko-KR': '한국어',
-				})
-				.setValue(this.plugin.settings.quartz.locale)
-				.onChange(async (value) => {
-					this.plugin.settings.quartz.locale = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('SPA（シングルページアプリケーション）')
-			.setDesc('ページ遷移を高速化（推奨）')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.quartz.enableSPA)
-				.onChange(async (value) => {
-					this.plugin.settings.quartz.enableSPA = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('ホバープレビュー')
-			.setDesc('リンクにホバーした時にプレビューを表示')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.quartz.enablePopovers)
-				.onChange(async (value) => {
-					this.plugin.settings.quartz.enablePopovers = value;
-					await this.plugin.saveSettings();
-				}));
-
-		// テーマ設定（折りたたみ可能）
-		containerEl.createEl('h3', { text: 'テーマ設定' });
-
-		new Setting(containerEl)
-			.setName('ヘッダーフォント')
-			.setDesc('見出しに使用するフォント')
-			.addText(text => text
-				.setPlaceholder('Schibsted Grotesk')
-				.setValue(this.plugin.settings.quartz.theme.typography.header)
-				.onChange(async (value) => {
-					this.plugin.settings.quartz.theme.typography.header = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('本文フォント')
-			.setDesc('本文に使用するフォント')
-			.addText(text => text
-				.setPlaceholder('Source Sans Pro')
-				.setValue(this.plugin.settings.quartz.theme.typography.body)
-				.onChange(async (value) => {
-					this.plugin.settings.quartz.theme.typography.body = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('コードフォント')
-			.setDesc('コードブロックに使用するフォント')
-			.addText(text => text
-				.setPlaceholder('IBM Plex Mono')
-				.setValue(this.plugin.settings.quartz.theme.typography.code)
-				.onChange(async (value) => {
-					this.plugin.settings.quartz.theme.typography.code = value;
-					await this.plugin.saveSettings();
-				}));
-
+	/**
+	 * 管理タブを描画。
+	 */
+	private renderActionsTab(containerEl: HTMLElement): void {
 		//! アクションセクション。
 		containerEl.createEl('h2', { text: 'アクション' });
 
