@@ -72,7 +72,8 @@ export class GitHubActionsSetup {
 				'Setup Quartz',
 				'Build Quartz',
 				'Move public contents to root',
-				'PUBLISH_TOKEN'
+				'PUBLISH_TOKEN',
+				'index.md'
 			];
 
 			for (const keyword of requiredKeywords) {
@@ -233,6 +234,28 @@ jobs:
           mkdir -p publish-repo/content
           if [ -d "{{PUBLISH_DIR}}" ]; then
             cp -r {{PUBLISH_DIR}}/* publish-repo/content/ || true
+          fi
+
+          # index.mdが存在しない場合は自動生成。
+          if [ ! -f "publish-repo/content/index.md" ]; then
+            echo "Creating default index.md..."
+            cat > publish-repo/content/index.md << 'INDEXEOF'
+---
+title: Home
+---
+
+# Welcome
+
+This is my published notes.
+
+## Recent Notes
+
+INDEXEOF
+            # 最近のMarkdownファイルをリストアップ（最大10件）。
+            find publish-repo/content -name "*.md" ! -name "index.md" -type f -printf "%T@ %p\n" | \
+              sort -rn | head -10 | cut -d' ' -f2- | \
+              sed 's|publish-repo/content/||' | sed 's|\.md$||' | \
+              sed 's|^|- [[|' | sed 's|$|]]|' >> publish-repo/content/index.md
           fi
 
           # ファイル数を確認。
