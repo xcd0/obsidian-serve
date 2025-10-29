@@ -75,7 +75,7 @@ export class GitHubActionsSetup {
 			.replace(/{{FONT_CODE}}/g, this.escapeYaml(this.settings.quartz.theme.typography.code))
 			.replace(/{{QUARTZ_CONFIG}}/g, this.generateQuartzConfig());
 
-		const filePath = path.join(this.vaultBasePath, '.github', 'workflows', 'sync-to-quartz.yml');
+		const filePath = path.join(this.vaultBasePath, '.github', 'workflows', 'build-and-publish.yml');
 		const fs = require('fs');
 		fs.writeFileSync(filePath, content, 'utf-8');
 
@@ -111,10 +111,10 @@ export class GitHubActionsSetup {
 
 
 	/**
-	 * ワークフローファイルのテンプレートを取得（Quartz方式 + 自動セットアップ）。
+	 * ワークフローファイルのテンプレートを取得（Vault側で完結する方式）。
 	 */
 	private getWorkflowTemplate(): string {
-		return `name: Sync Markdown to Quartz Repository
+		return `name: Build and Publish to GitHub Pages
 
 on:
   push:
@@ -123,10 +123,10 @@ on:
       - '{{PUBLISH_DIR}}/**'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  sync:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -135,22 +135,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout Quartz repository
-        uses: actions/checkout@v4
-        with:
-          repository: {{GITHUB_USERNAME}}/{{PUBLISH_REPO}}
-          token: \${{ secrets.GITHUB_TOKEN }}
-          path: quartz-repo
-
       - name: Setup Node.js
-        if: {{ENABLE_AUTO_SETUP}} == true
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Auto-setup Quartz (if not already setup)
-        if: {{ENABLE_AUTO_SETUP}} == true
-        working-directory: quartz-repo
+      - name: Clone publish repository
+        env:
+          PUBLISH_TOKEN: \${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          git clone https://\${PUBLISH_TOKEN}@github.com/{{GITHUB_USERNAME}}/{{PUBLISH_REPO}}.git publish-repo
+          cd publish-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Quartz in publish repository
+        working-directory: publish-repo
         env:
           QUARTZ_CONFIG: '{{QUARTZ_CONFIG}}'
         run: |
@@ -173,8 +173,7 @@ jobs:
     "url": "https://github.com/jackyzha0/quartz.git"
   },
   "scripts": {
-    "build": "npx quartz build",
-    "serve": "npx quartz build --serve"
+    "build": "npx quartz build"
   },
   "dependencies": {
     "@jackyzha0/quartz": "^4.0.0"
@@ -255,105 +254,57 @@ const quartzConfig: QuartzConfig = {
 export default quartzConfig
 EOFCONFIG
 
-            # deploy.ymlを生成。
-            mkdir -p .github/workflows
-            cat > .github/workflows/deploy.yml << 'EOFDEPLOY'
-name: Build and Deploy Quartz
-
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'content/**'
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build Quartz
-        run: npx quartz build
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: public
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-22.04
-    environment:
-      name: github-pages
-      url: \${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-EOFDEPLOY
-
             git add .
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
             git commit -m "feat: Auto-setup Quartz" || echo "No changes to commit"
-            git push
 
             echo "Quartz setup completed!"
           else
             echo "Quartz is already setup."
           fi
 
-      - name: Copy Markdown files to Quartz content directory
+      - name: Clear and copy Markdown files to content directory
         run: |
-          # 公開用リポジトリのcontent/ディレクトリをクリア（.gitは保持）。
-          find quartz-repo/content -mindepth 1 ! -path '*/\\.git/*' -delete 2>/dev/null || true
+          # content/ディレクトリをクリア（.gitは保持）。
+          find publish-repo/content -mindepth 1 ! -path '*/\\.git/*' -delete 2>/dev/null || true
 
           # 公開対象ディレクトリのMarkdownファイルをコピー。
-          mkdir -p quartz-repo/content
+          mkdir -p publish-repo/content
           if [ -d "{{PUBLISH_DIR}}" ]; then
-            cp -r {{PUBLISH_DIR}}/* quartz-repo/content/ || true
+            cp -r {{PUBLISH_DIR}}/* publish-repo/content/ || true
           fi
 
           # ファイル数を確認。
-          file_count=\$(find quartz-repo/content -name "*.md" | wc -l)
+          file_count=\$(find publish-repo/content -name "*.md" | wc -l)
           echo "Copied \$file_count Markdown files"
 
-      - name: Commit and push content to Quartz repository
-        working-directory: quartz-repo
+      - name: Build Quartz
+        working-directory: publish-repo
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Node modules がない場合はインストール。
+          if [ ! -d "node_modules" ]; then
+            npm install
+          fi
 
-          git add content/
+          # Quartzでビルド。
+          npm run build
+
+          echo "Quartz build completed!"
+          ls -la public/
+
+      - name: Push built site to publish repository
+        working-directory: publish-repo
+        env:
+          PUBLISH_TOKEN: \${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          git add .
 
           # 変更があればコミット。
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "docs: Sync content from vault (\$(date -u +%Y-%m-%d\ %H:%M:%S))"
-            git push
-            echo "Changes pushed to Quartz repository"
+            git commit -m "docs: Update published site (\$(date -u +%Y-%m-%d\ %H:%M:%S))"
+            git push https://\${PUBLISH_TOKEN}@github.com/{{GITHUB_USERNAME}}/{{PUBLISH_REPO}}.git main
+            echo "Changes pushed to publish repository"
           fi
 `;
 	}

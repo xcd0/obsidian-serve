@@ -154,6 +154,13 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 	}
 
 	/**
+	 * Windows環境かどうかを判定。
+	 */
+	private isWindows(): boolean {
+		return navigator.platform.toLowerCase().includes('win');
+	}
+
+	/**
 	 * タブナビゲーションを描画。
 	 */
 	private renderTabNavigation(containerEl: HTMLElement): void {
@@ -501,6 +508,16 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 				.onClick(async () => {
 					await this.plugin.publishNow();
 				}));
+
+		// Windows環境での警告。
+		if (this.isWindows()) {
+			const warningDiv = containerEl.createDiv({ cls: 'mod-warning' });
+			warningDiv.createEl('strong', { text: '⚠️ Windows環境での注意' });
+			warningDiv.createEl('br');
+			warningDiv.createEl('p', {
+				text: '「今すぐ公開」機能は、Windows環境でgit操作のプロセス制限により失敗する場合があります。より安定した運用には、上記の「GitHub Actionsをセットアップ」を使用した自動公開（推奨）をご利用ください。'
+			});
+		}
 
 		//! 設定管理セクション。
 		containerEl.createEl('h2', { text: '設定管理' });

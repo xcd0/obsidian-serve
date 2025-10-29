@@ -42,3 +42,21 @@
 .settings-tab-content.is-active {
 	display: block;
 }
+
+/* 警告メッセージ */
+.mod-warning {
+	padding: 12px 16px;
+	margin: 16px 0;
+	background-color: var(--background-modifier-error-hover);
+	border-left: 4px solid var(--background-modifier-error);
+	border-radius: 4px;
+}
+
+.mod-warning strong {
+	color: var(--text-error);
+}
+
+.mod-warning p {
+	margin: 8px 0 0 0;
+	line-height: 1.5;
+}

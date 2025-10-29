@@ -117,7 +117,7 @@ export class LocalPublishManager {
 	private async retryGitOperation(
 		operation: () => Promise<any>,
 		operationName: string,
-		maxRetries: number = 3
+		maxRetries: number = 5  // リトライ回数を3→5に増加。
 	): Promise<void> {
 		let lastError: Error | null = null;
 
@@ -132,9 +132,9 @@ export class LocalPublishManager {
 				// Windows環境でのforkエラーをチェック。
 				if (error.message.includes('cannot fork()') || error.message.includes('Resource temporarily unavailable')) {
 					if (attempt < maxRetries) {
-						new Notice(`${operationName} を再試行しています... (${attempt}/${maxRetries})`);
-						// 指数バックオフ: 2秒、4秒、8秒。
-						await this.sleep(2000 * Math.pow(2, attempt - 1));
+						const waitTime = 3000 * Math.pow(2, attempt - 1);  // 3秒、6秒、12秒、24秒、48秒。
+						new Notice(`${operationName} を再試行しています... (${attempt}/${maxRetries}) - ${Math.round(waitTime / 1000)}秒後`);
+						await this.sleep(waitTime);
 					}
 				} else {
 					// 他のエラーは即座に失敗。
