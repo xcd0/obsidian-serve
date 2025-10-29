@@ -17,11 +17,12 @@ class SetupGuideModal extends Modal {
 		contentEl.createEl('h2', { text: '📋 初期設定ガイド' });
 
 		contentEl.createEl('p', {
-			text: 'GitHub Actionsを使用してGitHub Pagesに自動公開します。以下の手順で設定してください:'
+			text: 'Quartz v4とGitHub Actionsを使用してGitHub Pagesに自動公開します。以下の手順で設定してください:'
 		});
 
 		const ol = contentEl.createEl('ol');
 
+		// Step 1: 公開用リポジトリ作成
 		const li1 = ol.createEl('li');
 		li1.createEl('strong', { text: '公開用リポジトリをブラウザから作成' });
 		li1.createEl('br');
@@ -29,54 +30,96 @@ class SetupGuideModal extends Modal {
 		li1.createEl('br');
 		li1.createSpan({ text: '⚠️ 必ずPublicリポジトリにしてください（無料プランでGitHub Pagesを使用するため）' });
 
+		// Step 2: Quartzセットアップ
 		const li2 = ol.createEl('li');
-		li2.createEl('strong', { text: 'GitHub Pagesを有効化' });
+		li2.createEl('strong', { text: '公開用リポジトリにQuartzをセットアップ' });
 		li2.createEl('br');
-		li2.createSpan({ text: 'リポジトリ設定 → Pages → Source: Deploy from a branch → Branch: main / (root) → Save' });
+		const codeBlock1 = li2.createEl('div', { cls: 'code-block' });
+		codeBlock1.createEl('pre').createEl('code', {
+			text: 'git clone https://github.com/<username>/<repository-name>.git\ncd <repository-name>\nnpx quartz create  # Empty Quartzを選択'
+		});
+		li2.createEl('br');
+		li2.createSpan({ text: 'deploy.ymlを作成（プラグインのQUARTZ_SETUP.mdを参照）' });
 
+		// Step 3: GitHub Pages設定
 		const li3 = ol.createEl('li');
-		li3.createEl('strong', { text: 'プラグイン設定を入力' });
+		li3.createEl('strong', { text: 'GitHub Pagesを有効化' });
 		li3.createEl('br');
-		li3.createSpan({ text: 'GitHubユーザー名、公開用リポジトリ名、公開対象ディレクトリを設定' });
+		li3.createSpan({ text: 'リポジトリ設定 → Pages → Source: GitHub Actions を選択 → Save' });
 
+		// Step 4: プラグイン設定
 		const li4 = ol.createEl('li');
-		li4.createEl('strong', { text: 'GitHub Actions をセットアップ' });
+		li4.createEl('strong', { text: 'プラグイン設定を入力' });
 		li4.createEl('br');
-		li4.createSpan({ text: 'コマンドパレット (Ctrl+P) から「GitHub Actions をセットアップ」を実行' });
-		li4.createEl('br');
-		li4.createSpan({ text: 'Vaultリポジトリに .github/workflows/ が自動生成されます' });
+		li4.createSpan({ text: 'GitHubユーザー名、公開用リポジトリ名、公開対象ディレクトリを設定' });
 
+		// Step 5: .gitignore設定（推奨）
 		const li5 = ol.createEl('li');
-		li5.createEl('strong', { text: 'Vaultを commit & push' });
+		li5.createEl('strong', { text: '（推奨）Vaultの.gitignoreに追加' });
 		li5.createEl('br');
-		li5.createSpan({ text: 'git add . && git commit -m "Setup GitHub Actions" && git push' });
+		const codeBlock2 = li5.createEl('div', { cls: 'code-block' });
+		codeBlock2.createEl('pre').createEl('code', {
+			text: 'echo ".obsidian-publish-tmp/" >> .gitignore'
+		});
+		li5.createEl('br');
+		li5.createSpan({ text: '※「今すぐ公開」機能を使用する場合に必要' });
 
+		// Step 6: GitHub Actionsセットアップ
 		const li6 = ol.createEl('li');
-		li6.createEl('strong', { text: '完了！' });
+		li6.createEl('strong', { text: 'GitHub Actions をセットアップ' });
 		li6.createEl('br');
-		li6.createSpan({ text: '公開対象ディレクトリを編集してpushすると、自動的にGitHub Pagesに公開されます' });
+		li6.createSpan({ text: 'コマンドパレット (Ctrl+P) から「GitHub Actions をセットアップ」を実行' });
+		li6.createEl('br');
+		li6.createSpan({ text: 'Vaultリポジトリに .github/workflows/sync-to-quartz.yml が自動生成されます' });
+
+		// Step 7: Vault commit & push
+		const li7 = ol.createEl('li');
+		li7.createEl('strong', { text: 'Vaultを commit & push' });
+		li7.createEl('br');
+		const codeBlock3 = li7.createEl('div', { cls: 'code-block' });
+		codeBlock3.createEl('pre').createEl('code', {
+			text: 'git add .\ngit commit -m "Setup GitHub Actions"\ngit push'
+		});
+
+		// Step 8: 完了
+		const li8 = ol.createEl('li');
+		li8.createEl('strong', { text: '完了！' });
+		li8.createEl('br');
+		li8.createSpan({ text: '公開対象ディレクトリを編集してpushすると、自動的にQuartz経由でGitHub Pagesに公開されます' });
 
 		contentEl.createEl('br');
 
+		// 仕組みの説明
 		const noteDiv = contentEl.createDiv({ cls: 'mod-warning' });
 		noteDiv.createEl('strong', { text: '💡 仕組み' });
 		noteDiv.createEl('br');
 		noteDiv.createSpan({
-			text: 'GitHub Actionsが自動的にMarkdown→HTML変換を行い、公開用リポジトリにpushします。Personal Access Tokenは不要です。'
+			text: 'Vault側のGitHub ActionsがMarkdownファイルを公開用リポジトリのcontent/に同期し、公開用リポジトリ側のGitHub ActionsがQuartzでビルドしてGitHub Pagesにデプロイします。Personal Access Tokenは不要です。'
 		});
 
 		contentEl.createEl('br');
 
+		// リンク集
 		const linkDiv = contentEl.createDiv();
 		linkDiv.createEl('p', { text: '詳細は以下のリンクを参照してください:' });
 		const ul = linkDiv.createEl('ul');
 		const linkLi1 = ul.createEl('li');
 		linkLi1.createEl('a', {
-			text: 'GitHub Pagesについて',
-			href: 'https://docs.github.com/ja/pages/getting-started-with-github-pages'
+			text: 'Quartz公式ドキュメント',
+			href: 'https://quartz.jzhao.xyz/'
 		});
 		const linkLi2 = ul.createEl('li');
 		linkLi2.createEl('a', {
+			text: 'QUARTZ_SETUP.md（詳細な手順）',
+			href: 'https://github.com/xcd0/obsidian-serve/blob/master/QUARTZ_SETUP.md'
+		});
+		const linkLi3 = ul.createEl('li');
+		linkLi3.createEl('a', {
+			text: 'GitHub Pagesについて',
+			href: 'https://docs.github.com/ja/pages/getting-started-with-github-pages'
+		});
+		const linkLi4 = ul.createEl('li');
+		linkLi4.createEl('a', {
 			text: 'GitHub Actionsについて',
 			href: 'https://docs.github.com/ja/actions'
 		});
