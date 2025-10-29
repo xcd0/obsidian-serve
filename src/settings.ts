@@ -278,6 +278,19 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		//! アクションセクション。
+		containerEl.createEl('h2', { text: 'アクション' });
+
+		new Setting(containerEl)
+			.setName('GitHub Actions をセットアップ')
+			.setDesc('Vaultリポジトリに .github/workflows/ を自動生成します')
+			.addButton(button => button
+				.setButtonText('セットアップ')
+				.setCta()
+				.onClick(async () => {
+					await this.plugin.setupGitHubActions();
+				}));
+
 		//! 設定管理セクション。
 		containerEl.createEl('h2', { text: '設定管理' });
 
