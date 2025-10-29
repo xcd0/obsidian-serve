@@ -35,6 +35,43 @@ export interface PluginSettings {
 		customCSS: string;                  // カスタムCSS。
 		customJS: string;                   // カスタムJS。
 	};
+
+	//! Quartz設定。
+	quartz: {
+		enableAutoSetup: boolean;           // Quartz自動セットアップを有効化。
+		locale: string;                     // ロケール (例: "ja-JP", "en-US")。
+		enableSPA: boolean;                 // SPA（シングルページアプリケーション）を有効化。
+		enablePopovers: boolean;            // ホバー時のプレビューポップアップを有効化。
+		theme: {
+			typography: {
+				header: string;             // ヘッダーフォント。
+				body: string;               // 本文フォント。
+				code: string;               // コードフォント。
+			};
+			colors: {
+				lightMode: {
+					light: string;          // 背景色。
+					lightgray: string;      // 薄いグレー。
+					gray: string;           // グレー。
+					darkgray: string;       // 濃いグレー。
+					dark: string;           // テキスト色。
+					secondary: string;      // セカンダリカラー。
+					tertiary: string;       // ターシャリカラー。
+					highlight: string;      // ハイライト色。
+				};
+				darkMode: {
+					light: string;
+					lightgray: string;
+					gray: string;
+					darkgray: string;
+					dark: string;
+					secondary: string;
+					tertiary: string;
+					highlight: string;
+				};
+			};
+		};
+	};
 }
 
 /**
@@ -60,6 +97,41 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 		logo: '',
 		customCSS: '',
 		customJS: '',
+	},
+	quartz: {
+		enableAutoSetup: true,
+		locale: 'ja-JP',
+		enableSPA: true,
+		enablePopovers: true,
+		theme: {
+			typography: {
+				header: 'Schibsted Grotesk',
+				body: 'Source Sans Pro',
+				code: 'IBM Plex Mono',
+			},
+			colors: {
+				lightMode: {
+					light: '#faf8f8',
+					lightgray: '#e5e5e5',
+					gray: '#b8b8b8',
+					darkgray: '#4e4e4e',
+					dark: '#2b2b2b',
+					secondary: '#284b63',
+					tertiary: '#84a59d',
+					highlight: 'rgba(143, 159, 169, 0.15)',
+				},
+				darkMode: {
+					light: '#161618',
+					lightgray: '#393639',
+					gray: '#646464',
+					darkgray: '#d4d4d4',
+					dark: '#ebebec',
+					secondary: '#7b97aa',
+					tertiary: '#84a59d',
+					highlight: 'rgba(143, 159, 169, 0.15)',
+				},
+			},
+		},
 	},
 };
 

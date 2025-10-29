@@ -321,6 +321,92 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		//! Quartz設定セクション。
+		containerEl.createEl('h2', { text: 'Quartz設定' });
+
+		new Setting(containerEl)
+			.setName('Quartz自動セットアップを有効化')
+			.setDesc('GitHub Actions実行時に公開用リポジトリへQuartzを自動セットアップ')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.quartz.enableAutoSetup)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.enableAutoSetup = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('ロケール')
+			.setDesc('サイトのロケール設定')
+			.addDropdown(dropdown => dropdown
+				.addOptions({
+					'ja-JP': '日本語',
+					'en-US': 'English',
+					'zh-CN': '简体中文',
+					'zh-TW': '繁體中文',
+					'ko-KR': '한국어',
+				})
+				.setValue(this.plugin.settings.quartz.locale)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.locale = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('SPA（シングルページアプリケーション）')
+			.setDesc('ページ遷移を高速化（推奨）')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.quartz.enableSPA)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.enableSPA = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('ホバープレビュー')
+			.setDesc('リンクにホバーした時にプレビューを表示')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.quartz.enablePopovers)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.enablePopovers = value;
+					await this.plugin.saveSettings();
+				}));
+
+		// テーマ設定（折りたたみ可能）
+		containerEl.createEl('h3', { text: 'テーマ設定' });
+
+		new Setting(containerEl)
+			.setName('ヘッダーフォント')
+			.setDesc('見出しに使用するフォント')
+			.addText(text => text
+				.setPlaceholder('Schibsted Grotesk')
+				.setValue(this.plugin.settings.quartz.theme.typography.header)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.theme.typography.header = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('本文フォント')
+			.setDesc('本文に使用するフォント')
+			.addText(text => text
+				.setPlaceholder('Source Sans Pro')
+				.setValue(this.plugin.settings.quartz.theme.typography.body)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.theme.typography.body = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('コードフォント')
+			.setDesc('コードブロックに使用するフォント')
+			.addText(text => text
+				.setPlaceholder('IBM Plex Mono')
+				.setValue(this.plugin.settings.quartz.theme.typography.code)
+				.onChange(async (value) => {
+					this.plugin.settings.quartz.theme.typography.code = value;
+					await this.plugin.saveSettings();
+				}));
+
 		//! アクションセクション。
 		containerEl.createEl('h2', { text: 'アクション' });
 
