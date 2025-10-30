@@ -168,6 +168,7 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 
 		const tabs = [
 			{ id: 'basic', label: '基本設定' },
+			{ id: 'homepage', label: 'ホームページ' },
 			{ id: 'quartz', label: 'Quartz設定' },
 			{ id: 'features', label: '機能設定' },
 			{ id: 'actions', label: '管理' },
@@ -206,6 +207,9 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 		switch (this.currentTab) {
 			case 'basic':
 				this.renderBasicTab(tabContentDiv);
+				break;
+			case 'homepage':
+				this.renderHomepageTab(tabContentDiv);
 				break;
 			case 'quartz':
 				this.renderQuartzTab(tabContentDiv);
@@ -295,6 +299,130 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.respectFrontmatter = value;
 					await this.plugin.saveSettings();
+				}));
+	}
+
+	/**
+	 * ホームページタブを描画。
+	 */
+	private renderHomepageTab(containerEl: HTMLElement): void {
+		const { IndexGenerator } = require('./index-generator');
+
+		//! 説明セクション。
+		containerEl.createEl('h2', { text: 'ホームページ設定' });
+
+		const descDiv = containerEl.createDiv();
+		descDiv.createEl('p', {
+			text: 'Quartzサイトのホームページ (index.md) を生成します。公開対象ディレクトリの直下に配置されます。'
+		});
+
+		//! ページタイトル設定。
+		containerEl.createEl('h3', { text: 'ページ情報' });
+
+		new Setting(containerEl)
+			.setName('ページタイトル')
+			.setDesc('ホームページのタイトル（フロントマターに使用）')
+			.addText(text => text
+				.setPlaceholder('Home')
+				.setValue(this.plugin.settings.indexPage.title)
+				.onChange(async (value) => {
+					this.plugin.settings.indexPage.title = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('ウェルカムメッセージの見出し')
+			.setDesc('ホームページの最初の見出し')
+			.addText(text => text
+				.setPlaceholder('Welcome')
+				.setValue(this.plugin.settings.indexPage.welcomeHeading)
+				.onChange(async (value) => {
+					this.plugin.settings.indexPage.welcomeHeading = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('説明文')
+			.setDesc('ホームページの説明文')
+			.addTextArea(text => text
+				.setPlaceholder('This is my published notes.')
+				.setValue(this.plugin.settings.indexPage.description)
+				.onChange(async (value) => {
+					this.plugin.settings.indexPage.description = value;
+					await this.plugin.saveSettings();
+				}));
+
+		//! 最近のノート設定。
+		containerEl.createEl('h3', { text: '最近のノート' });
+
+		new Setting(containerEl)
+			.setName('最近のノートを含める')
+			.setDesc('ホームページに最近のノートのリストを表示')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.indexPage.includeRecentNotes)
+				.onChange(async (value) => {
+					this.plugin.settings.indexPage.includeRecentNotes = value;
+					await this.plugin.saveSettings();
+					this.display(); // 設定変更時に再描画。
+				}));
+
+		if (this.plugin.settings.indexPage.includeRecentNotes) {
+			new Setting(containerEl)
+				.setName('最近のノートの件数')
+				.setDesc('表示する最近のノートの件数')
+				.addSlider(slider => slider
+					.setLimits(1, 30, 1)
+					.setValue(this.plugin.settings.indexPage.recentNotesCount)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.indexPage.recentNotesCount = value;
+						await this.plugin.saveSettings();
+					}));
+
+			new Setting(containerEl)
+				.setName('最近のノートセクションの見出し')
+				.setDesc('最近のノートセクションの見出し')
+				.addText(text => text
+					.setPlaceholder('Recent Notes')
+					.setValue(this.plugin.settings.indexPage.recentNotesHeading)
+					.onChange(async (value) => {
+						this.plugin.settings.indexPage.recentNotesHeading = value;
+						await this.plugin.saveSettings();
+					}));
+		}
+
+		//! 生成ボタン。
+		containerEl.createEl('h3', { text: 'index.md生成' });
+
+		const infoDiv = containerEl.createDiv({ cls: 'mod-warning' });
+		infoDiv.createEl('p', {
+			text: `生成されたindex.mdは以下の場所に配置されます:\n${this.plugin.settings.publishDirectory}index.md`
+		});
+
+		new Setting(containerEl)
+			.setName('index.mdを生成')
+			.setDesc('上記の設定を使用してindex.mdを生成します')
+			.addButton(button => button
+				.setButtonText('生成')
+				.setCta()
+				.onClick(async () => {
+					try {
+						button.setDisabled(true);
+						button.setButtonText('生成中...');
+
+						const generator = new IndexGenerator(this.app, this.plugin.settings);
+						await generator.generate();
+
+						button.setButtonText('生成完了!');
+						setTimeout(() => {
+							button.setButtonText('生成');
+							button.setDisabled(false);
+						}, 2000);
+					} catch (error) {
+						console.error('index.md生成エラー:', error);
+						button.setButtonText('生成');
+						button.setDisabled(false);
+					}
 				}));
 	}
 

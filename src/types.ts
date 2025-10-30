@@ -72,6 +72,16 @@ export interface PluginSettings {
 			};
 		};
 	};
+
+	//! index.md生成設定。
+	indexPage: {
+		title: string;                      // ページタイトル（フロントマター用）。
+		welcomeHeading: string;             // ウェルカムメッセージの見出し。
+		description: string;                // 説明文。
+		includeRecentNotes: boolean;        // 最近のノートを含めるか。
+		recentNotesCount: number;           // 最近のノートの件数。
+		recentNotesHeading: string;         // 最近のノートセクションの見出し。
+	};
 }
 
 /**
@@ -132,6 +142,14 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 				},
 			},
 		},
+	},
+	indexPage: {
+		title: 'Home',
+		welcomeHeading: 'Welcome',
+		description: 'This is my published notes.',
+		includeRecentNotes: true,
+		recentNotesCount: 10,
+		recentNotesHeading: 'Recent Notes',
 	},
 };
 

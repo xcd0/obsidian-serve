@@ -72,8 +72,7 @@ export class GitHubActionsSetup {
 				'Setup Quartz',
 				'Build Quartz',
 				'Move public contents to root',
-				'PUBLISH_TOKEN',
-				'index.md'
+				'PUBLISH_TOKEN'
 			];
 
 			for (const keyword of requiredKeywords) {
@@ -236,27 +235,15 @@ jobs:
             cp -r {{PUBLISH_DIR}}/* publish-repo/content/ || true
           fi
 
-          # index.mdが存在しない場合は自動生成。
-          if [ ! -f "publish-repo/content/index.md" ]; then
-            echo "Creating default index.md..."
-            echo "---" > publish-repo/content/index.md
-            echo "title: Home" >> publish-repo/content/index.md
-            echo "---" >> publish-repo/content/index.md
-            echo "" >> publish-repo/content/index.md
-            echo "# Welcome" >> publish-repo/content/index.md
-            echo "" >> publish-repo/content/index.md
-            echo "This is my published notes." >> publish-repo/content/index.md
-            echo "" >> publish-repo/content/index.md
-            echo "## Recent Notes" >> publish-repo/content/index.md
-            echo "" >> publish-repo/content/index.md
-            # 最近のMarkdownファイルをリストアップ（最大10件）。
-            find publish-repo/content -name "*.md" ! -name "index.md" -type f -printf "%T@ %p\\n" 2>/dev/null | sort -rn | head -10 | cut -d' ' -f2- | sed 's|publish-repo/content/||' | sed 's|\.md$||' | sed 's|^|- [[|' | sed 's|$|]]|' >> publish-repo/content/index.md || true
-            echo "Default index.md created successfully"
-          fi
-
           # ファイル数を確認。
           file_count=\$(find publish-repo/content -name "*.md" | wc -l)
           echo "Copied \$file_count Markdown files"
+
+          # index.mdの存在確認（警告のみ）。
+          if [ ! -f "publish-repo/content/index.md" ]; then
+            echo "Warning: index.md not found. Please generate it from plugin settings."
+            echo "The site may not display a homepage without index.md."
+          fi
 
       - name: Build Quartz
         working-directory: publish-repo
