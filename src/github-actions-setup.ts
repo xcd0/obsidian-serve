@@ -229,11 +229,15 @@ jobs:
           # content/ディレクトリをクリア（.gitは保持）。
           find publish-repo/content -mindepth 1 ! -path '*/\\.git/*' -delete 2>/dev/null || true
 
-          # 公開対象ディレクトリのMarkdownファイルをコピー（.から始まるファイルは除外）。
+          # 公開対象ディレクトリのMarkdownファイルをコピー（.から始まるファイル/ディレクトリは除外）。
           mkdir -p publish-repo/content
           if [ -d "{{PUBLISH_DIR}}" ]; then
             # .から始まらないファイルとディレクトリをコピー。
             find {{PUBLISH_DIR}} -mindepth 1 -maxdepth 1 ! -name '.*' -exec cp -r {} publish-repo/content/ \\; || true
+            # コピー先の.から始まるディレクトリを再帰的に削除（サブディレクトリ内の隠しディレクトリも削除）。
+            find publish-repo/content -name '.*' -type d -prune -exec rm -rf {} \\; 2>/dev/null || true
+            # コピー先の.から始まるファイルを削除。
+            find publish-repo/content -name '.*' -type f -delete 2>/dev/null || true
           fi
 
           # ファイル数を確認。

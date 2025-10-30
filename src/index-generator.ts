@@ -115,6 +115,13 @@ export class IndexGenerator {
 			if (file.name.startsWith('.')) {
 				return false;
 			}
+			// パスに.から始まるディレクトリが含まれているかチェック。
+			const pathParts = filePath.split('/');
+			for (const part of pathParts) {
+				if (part.startsWith('.') && part !== '.' && part !== '..') {
+					return false;
+				}
+			}
 			return true;
 		});
 
