@@ -111,6 +111,10 @@ export class IndexGenerator {
 			if (file.name === 'index.md') {
 				return false;
 			}
+			// .から始まるファイルは除外（隠しファイル）。
+			if (file.name.startsWith('.')) {
+				return false;
+			}
 			return true;
 		});
 
