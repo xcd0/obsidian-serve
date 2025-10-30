@@ -239,23 +239,22 @@ jobs:
           # index.mdが存在しない場合は自動生成。
           if [ ! -f "publish-repo/content/index.md" ]; then
             echo "Creating default index.md..."
-            cat > publish-repo/content/index.md << 'INDEXEOF'
----
-title: Home
----
-
-# Welcome
-
-This is my published notes.
-
-## Recent Notes
-
-INDEXEOF
+            echo "---" > publish-repo/content/index.md
+            echo "title: Home" >> publish-repo/content/index.md
+            echo "---" >> publish-repo/content/index.md
+            echo "" >> publish-repo/content/index.md
+            echo "# Welcome" >> publish-repo/content/index.md
+            echo "" >> publish-repo/content/index.md
+            echo "This is my published notes." >> publish-repo/content/index.md
+            echo "" >> publish-repo/content/index.md
+            echo "## Recent Notes" >> publish-repo/content/index.md
+            echo "" >> publish-repo/content/index.md
             # 最近のMarkdownファイルをリストアップ（最大10件）。
-            find publish-repo/content -name "*.md" ! -name "index.md" -type f -printf "%T@ %p\n" | \
+            find publish-repo/content -name "*.md" ! -name "index.md" -type f -printf "%T@ %p\n" 2>/dev/null | \
               sort -rn | head -10 | cut -d' ' -f2- | \
               sed 's|publish-repo/content/||' | sed 's|\.md$||' | \
-              sed 's|^|- [[|' | sed 's|$|]]|' >> publish-repo/content/index.md
+              sed 's|^|- [[|' | sed 's|$|]]|' >> publish-repo/content/index.md || true
+            echo "Default index.md created successfully"
           fi
 
           # ファイル数を確認。
