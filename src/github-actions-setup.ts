@@ -250,10 +250,7 @@ jobs:
             echo "## Recent Notes" >> publish-repo/content/index.md
             echo "" >> publish-repo/content/index.md
             # 最近のMarkdownファイルをリストアップ（最大10件）。
-            find publish-repo/content -name "*.md" ! -name "index.md" -type f -printf "%T@ %p\n" 2>/dev/null | \
-              sort -rn | head -10 | cut -d' ' -f2- | \
-              sed 's|publish-repo/content/||' | sed 's|\.md$||' | \
-              sed 's|^|- [[|' | sed 's|$|]]|' >> publish-repo/content/index.md || true
+            find publish-repo/content -name "*.md" ! -name "index.md" -type f -printf "%T@ %p\\n" 2>/dev/null | sort -rn | head -10 | cut -d' ' -f2- | sed 's|publish-repo/content/||' | sed 's|\.md$||' | sed 's|^|- [[|' | sed 's|$|]]|' >> publish-repo/content/index.md || true
             echo "Default index.md created successfully"
           fi
 
