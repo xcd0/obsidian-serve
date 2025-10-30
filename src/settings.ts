@@ -405,9 +405,9 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 		//! 生成ボタン。
 		containerEl.createEl('h3', { text: 'index.md生成' });
 
-		const infoDiv = containerEl.createDiv({ cls: 'mod-warning' });
+		const infoDiv = containerEl.createDiv({ cls: 'setting-item-description' });
 		infoDiv.createEl('p', {
-			text: `生成されたindex.mdは以下の場所に配置されます:\n${this.plugin.settings.publishDirectory}index.md`
+			text: `生成されたindex.mdは以下の場所に配置されます: ${this.plugin.settings.publishDirectory}index.md`
 		});
 
 		new Setting(containerEl)
