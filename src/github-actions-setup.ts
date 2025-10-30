@@ -118,11 +118,15 @@ export class GitHubActionsSetup {
 	private async generateWorkflowFile(): Promise<void> {
 		const template = this.getWorkflowTemplate();
 
+		// 除外プレフィックスをスペース区切りの文字列に変換。
+		const excludePrefixesStr = this.settings.excludePrefixes.join(' ');
+
 		// プレースホルダーを置換。
 		const content = template
 			.replace(/{{PUBLISH_DIR}}/g, this.settings.publishDirectory)
 			.replace(/{{GITHUB_USERNAME}}/g, this.settings.githubUsername)
 			.replace(/{{PUBLISH_REPO}}/g, this.settings.publishRepo)
+			.replace(/{{EXCLUDE_PREFIXES}}/g, excludePrefixesStr)
 			.replace(/{{ENABLE_AUTO_SETUP}}/g, String(this.settings.quartz.enableAutoSetup))
 			.replace(/{{SITE_TITLE}}/g, this.escapeYaml(this.settings.customization.siteTitle))
 			.replace(/{{LOCALE}}/g, this.settings.quartz.locale)
@@ -229,15 +233,20 @@ jobs:
           # content/ディレクトリをクリア（.gitは保持）。
           find publish-repo/content -mindepth 1 ! -path '*/\\.git/*' -delete 2>/dev/null || true
 
-          # 公開対象ディレクトリのMarkdownファイルをコピー（.から始まるファイル/ディレクトリは除外）。
+          # 公開対象ディレクトリのMarkdownファイルをコピー（除外プレフィックスで始まるファイル/ディレクトリは除外）。
           mkdir -p publish-repo/content
           if [ -d "{{PUBLISH_DIR}}" ]; then
-            # .から始まらないファイルとディレクトリをコピー。
-            find {{PUBLISH_DIR}} -mindepth 1 -maxdepth 1 ! -name '.*' -exec cp -r {} publish-repo/content/ \\; || true
-            # コピー先の.から始まるディレクトリを再帰的に削除（サブディレクトリ内の隠しディレクトリも削除）。
-            find publish-repo/content -name '.*' -type d -prune -exec rm -rf {} \\; 2>/dev/null || true
-            # コピー先の.から始まるファイルを削除。
-            find publish-repo/content -name '.*' -type f -delete 2>/dev/null || true
+            # まずすべてをコピー。
+            cp -r {{PUBLISH_DIR}}/* publish-repo/content/ 2>/dev/null || true
+
+            # 除外プレフィックスで始まるファイル/ディレクトリを削除。
+            EXCLUDE_PREFIXES="{{EXCLUDE_PREFIXES}}"
+            for prefix in \$EXCLUDE_PREFIXES; do
+              # ディレクトリを再帰的に削除（サブディレクトリ内も含む）。
+              find publish-repo/content -name "\${prefix}*" -type d -prune -exec rm -rf {} \\; 2>/dev/null || true
+              # ファイルを削除。
+              find publish-repo/content -name "\${prefix}*" -type f -delete 2>/dev/null || true
+            done
           fi
 
           # ファイル数を確認。

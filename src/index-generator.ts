@@ -111,15 +111,22 @@ export class IndexGenerator {
 			if (file.name === 'index.md') {
 				return false;
 			}
-			// .から始まるファイルは除外（隠しファイル）。
-			if (file.name.startsWith('.')) {
-				return false;
+			// 除外プレフィックスでファイル名をチェック。
+			for (const prefix of this.settings.excludePrefixes) {
+				if (file.name.startsWith(prefix)) {
+					return false;
+				}
 			}
-			// パスに.から始まるディレクトリが含まれているかチェック。
+			// パスに除外プレフィックスで始まるディレクトリが含まれているかチェック。
 			const pathParts = filePath.split('/');
 			for (const part of pathParts) {
-				if (part.startsWith('.') && part !== '.' && part !== '..') {
-					return false;
+				if (part === '.' || part === '..') {
+					continue; // カレント/親ディレクトリは除外しない。
+				}
+				for (const prefix of this.settings.excludePrefixes) {
+					if (part.startsWith(prefix)) {
+						return false;
+					}
 				}
 			}
 			return true;

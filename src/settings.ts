@@ -292,6 +292,17 @@ export class GitHubPagesPublishSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName('除外プレフィックス')
+			.setDesc('カンマ区切りで除外プレフィックスを指定。ファイル名/ディレクトリ名がこれらで始まる場合は非公開 (例: .,_,draft-)')
+			.addText(text => text
+				.setPlaceholder('.,_,draft-')
+				.setValue(this.plugin.settings.excludePrefixes.join(','))
+				.onChange(async (value) => {
+					this.plugin.settings.excludePrefixes = value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName('フロントマターを尊重')
 			.setDesc('published: falseを尊重して非公開にする')
 			.addToggle(toggle => toggle

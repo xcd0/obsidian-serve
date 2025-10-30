@@ -15,6 +15,7 @@ export interface PluginSettings {
 
 	//! 除外設定。
 	excludePatterns: string[];              // 除外パターン(例: ["draft/*", "*.tmp"])。
+	excludePrefixes: string[];              // 除外プレフィックス(例: [".", "_", "draft-"])。ファイル名/ディレクトリ名がこれらで始まる場合は非公開。
 	respectFrontmatter: boolean;            // published: falseを尊重。
 
 	//! 機能設定。
@@ -92,6 +93,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	publishRepo: '',
 	publishDirectory: 'Public/',
 	excludePatterns: ['draft/*', '*.tmp', 'Private/*'],
+	excludePrefixes: ['.', '_'],
 	respectFrontmatter: true,
 	features: {
 		graphView: true,
