@@ -90,8 +90,14 @@ class SetupGuideModal extends Modal {
 		contentEl.createEl('br');
 
 		// 仕組みの説明
-		const noteDiv = contentEl.createDiv({ cls: 'mod-warning' });
+		const noteDiv = contentEl.createDiv();
+		noteDiv.style.padding = '12px 16px';
+		noteDiv.style.marginTop = '16px';
+		noteDiv.style.marginBottom = '16px';
+		noteDiv.style.backgroundColor = 'var(--background-secondary)';
+		noteDiv.style.borderRadius = '4px';
 		noteDiv.createEl('strong', { text: '💡 仕組み' });
+		noteDiv.createEl('br');
 		noteDiv.createEl('br');
 		noteDiv.createSpan({
 			text: 'Vault側のGitHub ActionsがMarkdownファイルを公開用リポジトリのcontent/に同期し、公開用リポジトリ側のGitHub ActionsがQuartzでビルドしてGitHub Pagesにデプロイします。Personal Access Tokenは不要です。'
